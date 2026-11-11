@@ -41,61 +41,9 @@ Future<void> main(List<String> args) async {
     return;
   }
   final id = args[2].trim().toUpperCase();
-  if (!(RegExp(r'^[A-HJ-NP-Z2-9]{8}
-    stderr.writeln('El código debe tener 8 caracteres alfanuméricos (o 32 de la versión anterior).');
-    exitCode = 64;
-    return;
-  }
-  final secret = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  if (secret['format'] != 'gym-lite-ed25519-v1') {
-    throw const FormatException('Archivo de clave no compatible.');
-  }
-  final keyPair = SimpleKeyPairData(
-    base64Url.decode(base64Url.normalize(secret['private'] as String)),
-    publicKey: SimplePublicKey(
-      base64Url.decode(base64Url.normalize(secret['public'] as String)),
-      type: KeyPairType.ed25519,
-    ),
-    type: KeyPairType.ed25519,
-  );
-  try {
-    final signature = await algorithm.sign(
-      utf8.encode('GSL1|' + id), keyPair: keyPair);
-    stdout.writeln('CLAVE PARA ESTA INSTALACIÓN:');
-    stdout.writeln('GSL1-' + base64Url.encode(signature.bytes).replaceAll('=', ''));
-  } finally {
-    keyPair.destroy();
-  }
-}
-).hasMatch(id) ||
-        RegExp(r'^[A-F0-9]{32}
-    stderr.writeln('El código de instalación requiere 32 caracteres hexadecimales.');
-    exitCode = 64;
-    return;
-  }
-  final secret = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  if (secret['format'] != 'gym-lite-ed25519-v1') {
-    throw const FormatException('Archivo de clave no compatible.');
-  }
-  final keyPair = SimpleKeyPairData(
-    base64Url.decode(base64Url.normalize(secret['private'] as String)),
-    publicKey: SimplePublicKey(
-      base64Url.decode(base64Url.normalize(secret['public'] as String)),
-      type: KeyPairType.ed25519,
-    ),
-    type: KeyPairType.ed25519,
-  );
-  try {
-    final signature = await algorithm.sign(
-      utf8.encode('GSL1|' + id), keyPair: keyPair);
-    stdout.writeln('CLAVE PARA ESTA INSTALACIÓN:');
-    stdout.writeln('GSL1-' + base64Url.encode(signature.bytes).replaceAll('=', ''));
-  } finally {
-    keyPair.destroy();
-  }
-}
-).hasMatch(id))) {
-    stderr.writeln('El código de instalación requiere 32 caracteres hexadecimales.');
+  if (!(RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(id) ||
+        RegExp(r'^[A-F0-9]{32}$').hasMatch(id))) {
+    stderr.writeln('El código debe tener 8 caracteres alfanuméricos (o 32 de una instalación anterior).');
     exitCode = 64;
     return;
   }
