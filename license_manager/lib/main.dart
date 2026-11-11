@@ -112,7 +112,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final content = data?.text ?? '';
     final normalized = content.replaceAll(RegExp(r'[\s-]'), '').toUpperCase();
-    final matched = RegExp(r'[A-HJ-NP-Z2-9]{8}|[A-F0-9]{32}').firstMatch(normalized);
+    final matched = RegExp(r'[A-F0-9]{32}|[A-HJ-NP-Z2-9]{8}').firstMatch(normalized);
     if (matched == null) {
       notify('El portapapeles no tiene un código de instalación válido.');
       return;
