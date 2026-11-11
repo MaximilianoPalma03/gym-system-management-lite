@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../core/formatters.dart';
+import '../core/billing.dart';
 import 'app_database.dart';
 import 'models.dart';
 
@@ -71,13 +72,16 @@ class GymRepository {
   }
 
   Future<void> savePlan({int? id, required String name, required int durationDays,
-    required int priceCents, bool active = true}) async {
+    required int priceCents, bool active = true,
+    String cycleKind = 'days', int cycleMonths = 1}) async {
     if (name.trim().isEmpty || name.length > 70) throw ArgumentError('Nombre de plan inválido.');
-    if (durationDays < 1 || durationDays > 3650 || priceCents < 0) {
+    if (durationDays < 1 || durationDays > 3650 || priceCents < 0 ||
+        !['days', 'months'].contains(cycleKind) || cycleMonths < 1 || cycleMonths > 120) {
       throw ArgumentError('Duración o precio fuera de rango.');
     }
     final values = {
       'name': name.trim(), 'duration_days': durationDays,
+      'cycle_kind': cycleKind, 'cycle_months': cycleMonths,
       'price_cents': priceCents, 'active': active ? 1 : 0,
     };
     final db = await storage.database;
@@ -105,60 +109,60 @@ class GymRepository {
       final plan = planRows.first;
       if (client['active'] != 1) throw StateError('El cliente está inactivo.');
       if (plan['active'] != 1) throw StateError('El plan está desactivado.');
-      final currentDue = nullableDate(client['due_date']);
       final paymentDay = day(paidAt);
-      final periodStart = currentDue != null && compareDays(currentDue, paymentDay) >= 0
-          ? day(currentDue).add(const Duration(days: 1)) : paymentDay;
-      final periodEnd = periodStart.add(Duration(days: (plan['duration_days'] as int) - 1));
+      final period = calculateBillingPeriod(
+        paidAt: paymentDay,
+        previousDue: nullableDate(client['due_date']),
+        previousAnchorDay: client['billing_anchor_day'] as int?,
+        cycleKind: plan['cycle_kind'] as String? ?? 'days',
+        cycleMonths: plan['cycle_months'] as int? ?? 1,
+        durationDays: plan['duration_days'] as int,
+      );
       await tx.insert('payments', {
         'client_id': clientId, 'plan_id': planId,
-        'plan_name': plan['name'], 'duration_days': plan['duration_days'], 'amount_cents': amountCents,
-        'method': method, 'paid_at': dateKey(paymentDay),
-        'period_start': dateKey(periodStart), 'period_end': dateKey(periodEnd),
-        'notes': notes.trim(), 'voided': 0, 'created_at': DateTime.now().toUtc().toIso8601String(),
+        'plan_name': plan['name'], 'duration_days': plan['duration_days'],
+        'cycle_kind': plan['cycle_kind'], 'cycle_months': plan['cycle_months'],
+        'billing_anchor_day': period.anchorDay,
+        'amount_cents': amountCents, 'method': method,
+        'paid_at': dateKey(paymentDay),
+        'period_start': dateKey(period.start),
+        'period_end': dateKey(period.end),
+        'notes': notes.trim(), 'voided': 0,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
       await tx.update('clients', {
-        'plan_id': planId, 'due_date': dateKey(periodEnd),
+        'plan_id': planId, 'due_date': dateKey(period.end),
+        'billing_anchor_day': period.anchorDay,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, where: 'id = ?', whereArgs: [clientId]);
     });
   }
 
-  /// Anular un cobro y recalcular todos los períodos posteriores dentro de
-  /// una sola transacción. Si una renovación anticipada se anula, las siguientes
-  /// dejan de sumar días a una cuota que ya no existe.
+  /// Para evitar alterar cuotas anteriores, solo se anula el último cobro
+  /// válido del cliente. Los importes anulados quedan visibles y no suman.
   Future<void> voidPayment(int paymentId) async {
     final db = await storage.database;
     await db.transaction((tx) async {
       final matches = await tx.query('payments',
         where: 'id = ? AND voided = 0', whereArgs: [paymentId]);
-      if (matches.isEmpty) throw StateError('Pago no encontrado o ya anulado.');
+      if (matches.isEmpty) throw StateError('Pago inexistente o ya anulado.');
       final clientId = matches.first['client_id'] as int;
-      await tx.update('payments', {'voided': 1}, where: 'id = ?', whereArgs: [paymentId]);
-
-      final remaining = await tx.query('payments',
-        where: 'client_id = ? AND voided = 0',
-        whereArgs: [clientId], orderBy: 'id ASC');
-      DateTime? due;
-      int? lastPlanId;
-      for (final payment in remaining) {
-        final paid = day(DateTime.parse(payment['paid_at'] as String));
-        final duration = payment['duration_days'] as int;
-        if (duration < 1 || duration > 3650) {
-          throw StateError('Duración histórica del cobro inválida.');
-        }
-        final start = due != null && compareDays(due, paid) >= 0
-            ? due.add(const Duration(days: 1)) : paid;
-        due = start.add(Duration(days: duration - 1));
-        lastPlanId = payment['plan_id'] as int;
-        await tx.update('payments', {
-          'period_start': dateKey(start),
-          'period_end': dateKey(due),
-        }, where: 'id = ?', whereArgs: [payment['id']]);
+      final latest = await tx.query('payments', columns: ['id'],
+        where: 'client_id = ? AND voided = 0', whereArgs: [clientId],
+        orderBy: 'id DESC', limit: 1);
+      if (latest.isEmpty || latest.first['id'] != paymentId) {
+        throw StateError('Solo se puede anular el último cobro del cliente.');
       }
+      await tx.update('payments', {'voided': 1},
+        where: 'id = ?', whereArgs: [paymentId]);
+      final previous = await tx.query('payments',
+        columns: ['plan_id', 'period_end', 'billing_anchor_day'],
+        where: 'client_id = ? AND voided = 0', whereArgs: [clientId],
+        orderBy: 'id DESC', limit: 1);
       await tx.update('clients', {
-        'due_date': due == null ? null : dateKey(due),
-        'plan_id': lastPlanId,
+        'plan_id': previous.isEmpty ? null : previous.first['plan_id'],
+        'due_date': previous.isEmpty ? null : previous.first['period_end'],
+        'billing_anchor_day': previous.isEmpty ? null : previous.first['billing_anchor_day'],
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, where: 'id = ?', whereArgs: [clientId]);
     });
@@ -168,7 +172,7 @@ class GymRepository {
     final db = await storage.database;
     return {
       'format': 'gym-lite-data',
-      'version': 1,
+      'version': 2,
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'plans': await db.query('plans', orderBy: 'id'),
       'clients': await db.query('clients', orderBy: 'id'),
@@ -178,7 +182,7 @@ class GymRepository {
   }
 
   Future<void> restoreData(Map<String, dynamic> data) async {
-    if (data['format'] != 'gym-lite-data' || data['version'] != 1) {
+    if (data['format'] != 'gym-lite-data' || ![1, 2].contains(data['version'])) {
       throw const FormatException('Versión de respaldo no compatible.');
     }
     for (final key in ['plans', 'clients', 'payments', 'settings']) {
@@ -187,9 +191,9 @@ class GymRepository {
     }
     // Whitelist de columnas para evitar restaurar esquemas o datos arbitrarios.
     const columns = {
-      'plans': ['id', 'name', 'duration_days', 'price_cents', 'active'],
-      'clients': ['id', 'name', 'phone', 'notes', 'active', 'plan_id', 'due_date', 'created_at', 'updated_at'],
-      'payments': ['id', 'client_id', 'plan_id', 'plan_name', 'duration_days', 'amount_cents', 'method',
+      'plans': ['id', 'name', 'duration_days', 'cycle_kind', 'cycle_months', 'price_cents', 'active'],
+      'clients': ['id', 'name', 'phone', 'notes', 'active', 'plan_id', 'due_date', 'billing_anchor_day', 'created_at', 'updated_at'],
+      'payments': ['id', 'client_id', 'plan_id', 'plan_name', 'duration_days', 'cycle_kind', 'cycle_months', 'billing_anchor_day', 'amount_cents', 'method',
         'paid_at', 'period_start', 'period_end', 'notes', 'voided', 'created_at'],
       'settings': ['key', 'value'],
     };
@@ -203,6 +207,12 @@ class GymRepository {
           if (item is! Map) throw const FormatException('Registro inválido.');
           final row = <String, Object?>{};
           for (final col in columns[table]!) {
+            // Respaldos v1 (antes de ciclos calendario) o v2 sin campos nuevos.
+            if (!item.containsKey(col)) {
+              if (col == 'cycle_kind') { row[col] = 'days'; continue; }
+              if (col == 'cycle_months') { row[col] = 1; continue; }
+              if (col == 'billing_anchor_day') { row[col] = null; continue; }
+            }
             // Compatibilidad con respaldos antiguos (v1), que todavía no
             // guardaban duration_days. Se deduce del período histórico.
             if (table == 'payments' && col == 'duration_days' && !item.containsKey(col)) {

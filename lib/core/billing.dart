@@ -32,14 +32,14 @@ BillingPeriod calculateBillingPeriod({
   final stillValid = due != null && compareDays(due, paid) >= 0;
   if (cycleKind == 'months') {
     if (cycleMonths < 1 || cycleMonths > 120) throw ArgumentError('Cantidad de meses inválida');
-    final anchor = stillValid ? (previousAnchorDay ?? due.day) : paid.day;
-    final start = stillValid ? due.add(const Duration(days: 1)) : paid;
-    final end = anchoredMonth(stillValid ? due : paid, cycleMonths, anchor);
+    final anchor = stillValid ? (previousAnchorDay ?? due!.day) : paid.day;
+    final start = stillValid ? due!.add(const Duration(days: 1)) : paid;
+    final end = anchoredMonth(stillValid ? due! : paid, cycleMonths, anchor);
     return BillingPeriod(start: start, end: end, anchorDay: anchor);
   }
   if (cycleKind != 'days') throw ArgumentError('Tipo de plan desconocido');
   if (durationDays < 1 || durationDays > 3650) throw ArgumentError('Duración inválida');
-  final start = stillValid ? due.add(const Duration(days: 1)) : paid;
+  final start = stillValid ? due!.add(const Duration(days: 1)) : paid;
   return BillingPeriod(
     start: start,
     end: start.add(Duration(days: durationDays - 1)),
