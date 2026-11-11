@@ -10,6 +10,19 @@ void main() {
   const limit = 30;
   final today = DateTime(2026, 11, 11);
 
+  test('Los filtros muestran solo activos, solo inactivos o todos', () {
+    expect(ClientListFilter.active.includes(ClientActivity.vigente), isTrue);
+    expect(ClientListFilter.active.includes(ClientActivity.pendiente), isTrue);
+    expect(ClientListFilter.active.includes(ClientActivity.inactivoAutomatico), isFalse);
+    expect(ClientListFilter.active.includes(ClientActivity.inactivoManual), isFalse);
+    expect(ClientListFilter.inactive.includes(ClientActivity.vigente), isFalse);
+    expect(ClientListFilter.inactive.includes(ClientActivity.inactivoAutomatico), isTrue);
+    expect(ClientListFilter.inactive.includes(ClientActivity.inactivoManual), isTrue);
+    for (final status in ClientActivity.values) {
+      expect(ClientListFilter.all.includes(status), isTrue);
+    }
+  });
+
   test('Clientes con cuota vigente permanecen en activos', () {
     expect(clientActivity(client(due: DateTime(2026, 11, 11)),
         today: today, inactiveAfterDays: limit), ClientActivity.vigente);

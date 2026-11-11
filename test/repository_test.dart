@@ -41,6 +41,14 @@ void main() {
     expect(store.clients, isEmpty);
   });
 
+  test('El plazo de inactividad se guarda y valida sin modificar pagos', () async {
+    await repo.saveSetting('inactive_after_days', '30');
+    expect((await repo.settings())['inactive_after_days'], '30');
+    await expectLater(repo.saveSetting('inactive_after_days', '0'), throwsArgumentError);
+    await expectLater(repo.saveSetting('inactive_after_days', '366'), throwsArgumentError);
+    expect(await repo.payments(), isEmpty);
+  });
+
   test('La apariencia puede guardarse sin modificar clientes ni planes', () async {
     await repo.saveSetting('theme_mode', 'dark');
     expect((await repo.settings())['theme_mode'], 'dark');

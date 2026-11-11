@@ -39,3 +39,20 @@ instalaciones lo traen como predeterminado.
 
 Los nuevos archivos de respaldo usan formato 2. Los respaldos antiguos del
 formato 1 se pueden restaurar con las reglas de días fijos existentes.
+
+### Clientes inactivos por falta de pago
+
+- Por defecto, un cliente pasa a **Inactivo** cuando supera **30 días
+  adicionales desde el vencimiento**. Hasta el día 30 inclusive figura
+  **Pendiente**; desde el día 31 figura **Inactivo**.
+- El plazo se puede ajustar entre 1 y 365 días desde **Ajustes**.
+- Es un estado **calculado**, no modifica el campo `active`, no elimina
+  clientes ni pagos, y se revierte automáticamente cuando el cliente renueva.
+- Sin vencimiento previo, Higea no puede saber si hubo inasistencia: el
+  cliente permanece Pendiente hasta que se registre un pago.
+- La desactivación manual prevalece y requiere reactivación manual antes
+  de registrar un cobro.
+- En Clientes, **Activos** incluye vigentes y pendientes; **Ver inactivos**
+  muestra exclusivamente inactivos; **Incluir inactivos** muestra todos.
+- En el resumen, la cuenta de **Pendientes** deja de incluir a quienes
+  superaron el plazo y ahora son inactivos.

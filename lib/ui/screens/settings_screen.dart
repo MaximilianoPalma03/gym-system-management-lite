@@ -324,9 +324,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text('Clientes e inactividad',
                 style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              Text('Si una cuota lleva más de 30 días vencida, el cliente '
-                'pasa a Inactivo automáticamente. Podés cambiar el plazo '
-                'y no se pierde su historial.',
+              Text('Si una cuota lleva más de ${widget.store.inactiveAfterDays} días '
+                'vencida, el cliente pasa a Inactivo automáticamente. '
+                'Podés cambiar ese plazo sin perder su historial.',
                 style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 8),
               ListTile(
