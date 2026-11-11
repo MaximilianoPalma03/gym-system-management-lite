@@ -98,7 +98,7 @@ class _LicenseGateState extends State<LicenseGate> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _field, autocorrect: false, enableSuggestions: false,
-                  decoration: const InputDecoration(labelText: 'Clave de activación',
+                  decoration: InputDecoration(labelText: 'Clave de activación',
                     hintText: 'GSL1-...',
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.content_paste),
