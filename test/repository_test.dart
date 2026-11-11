@@ -114,8 +114,12 @@ void main() {
   test('Una restauración inválida es transaccional', () async {
     await repo.saveClient(name: 'Dato original');
     final data = await repo.exportData();
-    final clients = data['clients'] as List;
-    clients.add({'id': 500, 'name': 'Registro incompleto'});
+    // sqflite devuelve listas de solo lectura. Para probar el rollback
+    // generamos una lista modificable y no tocamos los datos del plugin.
+    data['clients'] = [
+      ...(data['clients'] as List),
+      {'id': 500, 'name': 'Registro incompleto'},
+    ];
     await expectLater(repo.restoreData(data), throwsA(isA<Exception>()));
     expect((await repo.clients()).single.name, 'Dato original');
   });

@@ -16,7 +16,9 @@ class LicenseGate extends StatefulWidget {
 }
 
 class _LicenseGateState extends State<LicenseGate> {
-  final _service = LicenseService();
+  // Se inicializa solo cuando la activación realmente se requiere.
+  // Evita acceder al plugin nativo durante el modo debug y pruebas de widgets.
+  late final LicenseService _service = LicenseService();
   final _field = TextEditingController();
   late Future<LicenseStatus> _status = _service.status();
   bool _saving = false;
