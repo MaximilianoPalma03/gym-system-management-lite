@@ -56,25 +56,9 @@ try {
   Run-Checked 'dart' @('run', 'tool/configurar_firma_android.dart')
   Run-Checked 'dart' @('run', 'flutter_launcher_icons')
   Run-Checked 'dart' @('run', 'tool/configurar_splash.dart')
-  # Capturar el resultado para mostrar solamente los diagnósticos bloqueantes.
-  # Los avisos "info" no hacen fallar --no-fatal-infos; las advertencias
-  # y los errores deben resolverse antes de firmar para clientes.
-  $analysisOutput = @(& flutter analyze --no-fatal-infos 2>&1)
-  $analysisExitCode = $LASTEXITCODE
-  if ($analysisExitCode -ne 0) {
-    Write-Host 'El análisis no pasó. Diagnósticos que pueden bloquear el APK:' -ForegroundColor Yellow
-    $critical = @($analysisOutput | Where-Object {
-      $_.ToString() -match '^\s*(error|warning)\s+-'
-    })
-    if ($critical.Count -gt 0) {
-      $critical | ForEach-Object { Write-Host $_ }
-    } else {
-      Write-Host 'No se identificaron líneas error/warning; últimas líneas del analizador:'
-      $analysisOutput | Select-Object -Last 25 | ForEach-Object { Write-Host $_ }
-    }
-    throw 'Falló flutter analyze. No se generó un APK comercial.'
-  }
-  Write-Host 'Análisis estático aprobado.' -ForegroundColor Green
+  # El propio flutter analyze muestra las advertencias con su archivo y línea.
+  # --no-fatal-infos permite sugerencias de estilo, no advertencias ni errores.
+  Run-Checked 'flutter' @('analyze', '--no-fatal-infos')
   Run-Checked 'flutter' @('test')
   Run-Checked 'flutter' @('build', 'apk', '--release',
     "--build-name=$VersionName", "--build-number=$VersionCode",

@@ -65,7 +65,7 @@ class ReceiptService {
       build: (ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          if (logo != null) pw.Center(child: pw.Image(logo!, width: 40, height: 40)),
+          if (logo != null) pw.Center(child: pw.Image(logo, width: 40, height: 40)),
           pw.SizedBox(height: 8),
           pw.Text(studioName,
             maxLines: 2, textAlign: pw.TextAlign.center,
