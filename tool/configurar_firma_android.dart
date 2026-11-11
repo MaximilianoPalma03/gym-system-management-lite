@@ -62,7 +62,7 @@ Future<void> main() async {
   }
 
   if (!gradle.contains('val higeaSigningProperties = Properties()')) {
-    final marker = RegExp(r'(?m)^android\s*\{');
+    final marker = RegExp(r'^android\s*\{', multiLine: true);
     if (!marker.hasMatch(gradle)) {
       throw StateError('No se encontró el bloque android en Gradle.');
     }
@@ -77,7 +77,7 @@ android {''');
   }
 
   if (!gradle.contains('create("release")')) {
-    final marker = RegExp(r'(?m)^\s*buildTypes\s*\{');
+    final marker = RegExp(r'^\s*buildTypes\s*\{', multiLine: true);
     if (!marker.hasMatch(gradle)) {
       throw StateError('No se encontró buildTypes en Gradle.');
     }
