@@ -47,42 +47,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.store.modify(() => widget.store.repo.saveSetting('color_index', index.toString()));
   }
 
+  /// El diálogo conserva sus propios campos durante su animación de salida.
+  /// No destruimos TextEditingControllers justo después del Navigator.pop:
+  /// eso producía un fallo de widgets durante guardar/compartir/restaurar.
   Future<String?> _askPassword({required bool confirmation}) async {
-    final first = TextEditingController();
-    final second = TextEditingController();
-    try {
-      return await showDialog<String>(context: context,
-        builder: (dialog) => StatefulBuilder(builder: (dialog, refresh) => AlertDialog(
+    String password = '';
+    String repeated = '';
+    return showDialog<String>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, update) => AlertDialog(
           title: Text(confirmation ? 'Contraseña del respaldo' : 'Abrir respaldo'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(confirmation
-              ? 'Elegí una contraseña de al menos 8 caracteres. Se necesita para restaurar este respaldo.'
-              : 'Ingresá la contraseña utilizada al crear el respaldo.'),
+                ? 'Elegí una contraseña de al menos 8 caracteres. La necesitarás para recuperar tus datos.'
+                : 'Ingresá la contraseña con la que se creó el respaldo.'),
             const SizedBox(height: 12),
-            TextField(controller: first, obscureText: true,
+            TextField(
+              obscureText: true, autocorrect: false, enableSuggestions: false,
               decoration: const InputDecoration(labelText: 'Contraseña'),
-              onChanged: (_) => refresh(() {})),
+              onChanged: (v) => update(() => password = v),
+            ),
             if (confirmation) ...[
               const SizedBox(height: 12),
-              TextField(controller: second, obscureText: true,
+              TextField(
+                obscureText: true, autocorrect: false, enableSuggestions: false,
                 decoration: const InputDecoration(labelText: 'Repetir contraseña'),
-                onChanged: (_) => refresh(() {})),
+                onChanged: (v) => update(() => repeated = v),
+              ),
             ],
           ]),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Cancelar')),
             FilledButton(
-              onPressed: first.text.length >= (confirmation ? 8 : 1)
-                && (!confirmation || first.text == second.text)
-                ? () => Navigator.pop(dialog, first.text) : null,
+              onPressed: password.length >= (confirmation ? 8 : 1)
+                  && (!confirmation || repeated == password)
+                  ? () => Navigator.pop(dialog, password)
+                  : null,
               child: const Text('Continuar'),
             ),
           ],
-        )));
-    } finally {
-      first.dispose();
-      second.dispose();
-    }
+        ),
+      ),
+    );
   }
 
   Future<void> _export({bool share = false}) async {
