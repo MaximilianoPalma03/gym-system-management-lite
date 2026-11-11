@@ -254,7 +254,7 @@ class _LicenseGateState extends State<LicenseGate> with WidgetsBindingObserver {
                       children: [
                         const Text('Prueba gratuita',
                           style: TextStyle(fontWeight: FontWeight.w700)),
-                        Text('Quedan ${status.trialDaysRemaining} días',
+                        Text(status.trialDaysRemaining == 1 ? 'Queda 1 día' : 'Quedan ${status.trialDaysRemaining} días',
                           style: Theme.of(context).textTheme.bodySmall),
                       ],
                     )),

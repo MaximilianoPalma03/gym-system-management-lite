@@ -36,7 +36,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   final controller = TextEditingController();
   Map<String, dynamic>? key;
   String? license;
-  LicenseType licenseType = LicenseType.permanent;
+  LicenseType licenseType = LicenseType.trial;
   bool busy = false;
   String? error;
 

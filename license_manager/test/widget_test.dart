@@ -8,7 +8,7 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   });
 
-  testWidgets('El administrador permite elegir prueba gratuita o licencia comercial',
+  testWidgets('El administrador ofrece prueba gratuita y licencia comercial',
       (tester) async {
     await tester.pumpWidget(const LicenseManagerApp());
     await tester.pumpAndSettle();
@@ -21,10 +21,10 @@ void main() {
     expect(find.text('Tipo de licencia'), findsOneWidget);
     expect(find.text('Prueba · 7 días'), findsOneWidget);
     expect(find.text('Comercial'), findsOneWidget);
-    expect(find.text('Generar licencia permanente'), findsOneWidget);
-
-    await tester.tap(find.text('Prueba · 7 días'));
-    await tester.pumpAndSettle();
     expect(find.text('Generar prueba gratuita'), findsOneWidget);
+
+    await tester.tap(find.text('Comercial'));
+    await tester.pumpAndSettle();
+    expect(find.text('Generar licencia permanente'), findsOneWidget);
   });
 }
