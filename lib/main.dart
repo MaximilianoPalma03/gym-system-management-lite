@@ -5,6 +5,7 @@ import 'data/app_database.dart';
 import 'data/gym_repository.dart';
 import 'state/gym_store.dart';
 import 'ui/theme.dart';
+import 'licensing/license_gate.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/clients_screen.dart';
 import 'ui/screens/payments_screen.dart';
@@ -43,7 +44,7 @@ class GymLiteApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: GymShell(store: store),
+      home: LicenseGate(child: GymShell(store: store)),
     ),
   );
 }
