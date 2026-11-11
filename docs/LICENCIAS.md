@@ -29,6 +29,8 @@ de instalación y no borra clientes, pagos ni configuraciones.
    **Generar prueba gratuita**.
 5. Enviá la clave desde la propia aplicación. El cliente la pega en Higea.
 6. Higea abre todas sus funciones y muestra los días restantes de la prueba.
+7. La prueba no se puede reiniciar: si el mismo código ya la utilizó y venció,
+   el License Manager debe emitir una licencia comercial para continuar.
 
 No es necesario que el vendedor esté conectado a Internet para generar la
 clave. WhatsApp sí necesita conexión para enviarla.

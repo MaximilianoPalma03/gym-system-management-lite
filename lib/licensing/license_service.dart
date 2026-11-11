@@ -134,8 +134,12 @@ class LicenseService {
       }
       final previousTrialStart = await _preferences.getInt(_trialStartedKey);
       if (previousTrialStart != null) {
-        // Permite reintentar la misma clave, pero nunca iniciar otra prueba.
-        return existingKind == LicenseKind.trial && existing == normalized;
+        // Permite reintentar la misma clave mientras siga vigente, sin reiniciar
+        // el plazo. Una prueba vencida nunca se reactiva con otra clave de prueba.
+        if (existingKind != LicenseKind.trial || existing != normalized) return false;
+        final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+          previousTrialStart, isUtc: true).add(trialDuration);
+        return _clock().toUtc().isBefore(expiresAt);
       }
       await _preferences.setString(_licenseKey, normalized);
       await _preferences.setInt(

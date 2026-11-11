@@ -199,8 +199,8 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
-              const Text('Generá y enviá licencias desde tu celular. '
-                'El comprador puede copiar y pegar la licencia, sin tipearla.',
+              const Text('Generá pruebas gratuitas de 7 días o licencias comerciales permanentes. '
+                'El comprador puede copiar y pegar la clave, sin tipearla.',
                 textAlign: TextAlign.center),
               const SizedBox(height: 12),
               if (key == null)
