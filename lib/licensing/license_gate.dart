@@ -8,6 +8,8 @@ import 'license_service.dart';
 /// En release se exige licencia. En debug se puede probar con
 /// --dart-define=REQUIRE_LICENSE=true.
 const bool _debugRequireLicense = bool.fromEnvironment('REQUIRE_LICENSE', defaultValue: false);
+// Solo en modo debug: permite probar la solicitud de licencia sin borrar datos.
+const bool _debugPreviewActivation = bool.fromEnvironment('PREVIEW_ACTIVATION', defaultValue: false);
 
 class LicenseGate extends StatefulWidget {
   const LicenseGate({super.key, required this.child});
@@ -68,7 +70,7 @@ class _LicenseGateState extends State<LicenseGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kReleaseMode && !_debugRequireLicense) return widget.child;
+    if (!kReleaseMode && !_debugRequireLicense && !_debugPreviewActivation) return widget.child;
     return FutureBuilder<LicenseStatus>(
       future: _status,
       builder: (context, snapshot) {
@@ -100,7 +102,7 @@ class _LicenseGateState extends State<LicenseGate> {
             Text('No se pudo verificar la licencia. No borres los datos de la app.')));
         }
         final status = snapshot.data!;
-        if (status.valid) return widget.child;
+        if (status.valid && (kReleaseMode || !_debugPreviewActivation)) return widget.child;
         return Scaffold(
           body: SafeArea(child: Center(child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),

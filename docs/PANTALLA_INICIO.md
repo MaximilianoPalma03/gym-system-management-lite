@@ -29,3 +29,14 @@ El botón «Enviar código al vendedor» abre WhatsApp dirigido al número
 comercial configurado en lib/licensing/seller_contact.dart y prepara
 un mensaje con el código de instalación. El usuario confirma el envío.
 Se mantiene el botón Copiar código si no hay conexión o WhatsApp.
+
+## Probar el botón sin borrar datos
+
+Si la instalación del teléfono ya está activada, en la rama de desarrollo
+se puede abrir temporalmente la pantalla de activación con:
+
+`flutter run -d ID_DEL_CELULAR --dart-define=PREVIEW_ACTIVATION=true`
+
+Este modo solo funciona en compilaciones debug. Permite comprobar el botón
+de WhatsApp sin desinstalar Gym Lite ni borrar clientes o licencias.
+Al reiniciar normalmente sin ese parámetro, vuelve al inicio habitual.
