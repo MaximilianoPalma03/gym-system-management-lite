@@ -63,7 +63,7 @@ class ClientHistoryScreen extends StatelessWidget {
                 if (payment.notes.isNotEmpty) Text(payment.notes),
                 if (payment.voided) const Text('COBRO ANULADO',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-              ]))),
+              ])),
             )),
             const SizedBox(height: 24),
           ]),
