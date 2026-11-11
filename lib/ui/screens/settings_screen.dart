@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -41,6 +42,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) notice(context, 'Error: $e');
     }
+  }
+
+  Future<void> _chooseLogo() async {
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.image, withData: true, allowMultiple: false);
+      if (!mounted || picked == null || picked.files.isEmpty) return;
+      final f = picked.files.single;
+      Uint8List? bytes = f.bytes;
+      if (bytes == null && f.path != null) bytes = await File(f.path!).readAsBytes();
+      if (bytes == null || bytes.isEmpty) {
+        notice(context, 'No se pudo leer el logo.');
+        return;
+      }
+      if (bytes.length > 350000) {
+        notice(context, 'Elegí una imagen PNG o JPG de menos de 350 KB.');
+        return;
+      }
+      await widget.store.modify(
+        () => widget.store.repo.saveSetting('studio_logo_b64', base64Encode(bytes!)));
+      if (mounted) notice(context, 'Logo actualizado.');
+    } catch (e) {
+      if (mounted) notice(context, 'No se pudo cambiar el logo: $e');
+    }
+  }
+
+  Future<void> _clearLogo() async {
+    await widget.store.modify(() => widget.store.repo.saveSetting('studio_logo_b64', ''));
+    if (mounted) notice(context, 'Logo quitado.');
   }
 
   Future<void> _changeColor(int index) async {
@@ -198,6 +228,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: const InputDecoration(labelText: 'Nombre del estudio')),
             FilledButton.tonalIcon(onPressed: _saveName,
               icon: const Icon(Icons.save_outlined), label: const Text('Guardar nombre')),
+            const SizedBox(height: 18),
+            Row(children: [
+              const Expanded(child: Text('Logo dentro de la aplicación')),
+              TextButton.icon(onPressed: _chooseLogo, icon: const Icon(Icons.image_outlined),
+                label: const Text('Elegir')),
+            ]),
+            if ((widget.store.settings['studio_logo_b64'] ?? '').isNotEmpty)
+              Row(children: [
+                const Text('Logo guardado para este estudio'),
+                const Spacer(),
+                TextButton(onPressed: _clearLogo, child: const Text('Quitar')),
+              ]),
+            const Text('El ícono del escritorio Android es común al producto y se configura al compilar.',
+              style: TextStyle(fontSize: 12)),
             const SizedBox(height: 18),
             const Text('Color principal'),
             const SizedBox(height: 8),

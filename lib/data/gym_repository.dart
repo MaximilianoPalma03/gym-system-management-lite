@@ -34,7 +34,7 @@ class GymRepository {
   }
 
   Future<void> saveSetting(String key, String value) async {
-    if (!['studio_name', 'color_index'].contains(key)) throw ArgumentError('Configuración inválida');
+    if (!['studio_name', 'color_index', 'studio_logo_b64'].contains(key)) throw ArgumentError('Configuración inválida');
     final db = await storage.database;
     await db.insert('settings', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);

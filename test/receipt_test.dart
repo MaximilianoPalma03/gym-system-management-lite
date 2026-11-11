@@ -1,8 +1,11 @@
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system_management_lite/data/models.dart';
 import 'package:gym_system_management_lite/services/receipt_service.dart';
 
 void main() {
+  setUpAll(() async => initializeDateFormatting('es_AR'));
+
   test('Constancia de pago incluye los datos y no es factura', () {
     final p = StudioPayment(
       id: 14, clientId: 1, planId: 3,

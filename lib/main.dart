@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -63,6 +65,15 @@ class _GymShellState extends State<GymShell> {
     const titles = ['Inicio', 'Clientes', 'Pagos', 'Informes'];
     return Scaffold(
       appBar: AppBar(
+        leading: (widget.store.settings['studio_logo_b64'] ?? '').isEmpty
+          ? null
+          : Padding(padding: const EdgeInsets.all(7), child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: ClipOval(child: Image.memory(
+                Uint8List.fromList(base64Decode(widget.store.settings['studio_logo_b64']!)),
+                width: 34, height: 34, fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Icon(Icons.fitness_center),
+              )))),
         title: Text(index == 0 ? widget.store.studioName : titles[index],
           maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
