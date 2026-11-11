@@ -88,12 +88,31 @@ try {
     throw 'No se encontró apksigner.bat. Instalá Android SDK Build-Tools antes de distribuir.'
   }
 
-  $signatureReport = & $signer verify --print-certs $apk 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    throw 'La firma del APK NO pasó la verificación de apksigner. No distribuir.'
-  }
-  if (-not ($signatureReport -match 'Signer #1 certificate SHA-256 digest:')) {
-    throw 'No se pudo obtener el certificado firmante. No distribuir.'
+  # Java puede escribir avisos en stderr aunque apksigner termine bien.
+  # PowerShell 5.1 interpreta stderr de procesos nativos como NativeCommandError
+  # cuando ErrorActionPreference=Stop. Capturamos cada flujo por separado
+  # y decidimos el resultado con ExitCode, sin ignorar fallos reales.
+  $verifyOut = Join-Path $env:TEMP ("higea-apksigner-" + [guid]::NewGuid().ToString('N') + ".out")
+  $verifyErr = Join-Path $env:TEMP ("higea-apksigner-" + [guid]::NewGuid().ToString('N') + ".err")
+  try {
+    $cmdArgs = '/d /s /c ""' + $signer + '" verify --print-certs "' + $apk + '""'
+    $verification = Start-Process -FilePath $env:ComSpec -ArgumentList $cmdArgs `
+      -Wait -PassThru -NoNewWindow `
+      -RedirectStandardOutput $verifyOut -RedirectStandardError $verifyErr
+    $signatureReport = @(Get-Content -Path $verifyOut)
+    $verificationErrors = @(Get-Content -Path $verifyErr)
+    if ($verification.ExitCode -ne 0) {
+      $detail = ($verificationErrors | Select-Object -Last 8) -join ' | '
+      throw "La firma del APK NO pasó la verificación (salida $($verification.ExitCode)). $detail"
+    }
+    if (-not ($signatureReport -match 'Signer #1 certificate SHA-256 digest:')) {
+      throw 'No se pudo obtener el certificado firmante. No distribuir.'
+    }
+    if ($verificationErrors.Count -gt 0) {
+      Write-Host 'apksigner mostró advertencias de Java; la firma pasó la verificación.' -ForegroundColor Yellow
+    }
+  } finally {
+    Remove-Item -LiteralPath $verifyOut, $verifyErr -Force -ErrorAction SilentlyContinue
   }
 
   New-Item -ItemType Directory -Force -Path $distDir | Out-Null
