@@ -267,7 +267,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
             'Compartirlas por WhatsApp sí requiere conexión.',
             style: TextStyle(fontSize: 12), textAlign: TextAlign.center),
         ]),
-      )),
+      ),
     );
   }
 }
