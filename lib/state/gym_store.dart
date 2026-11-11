@@ -12,6 +12,12 @@ class GymStore extends ChangeNotifier {
   Map<String, String> settings = {};
   bool busy = false;
 
+  /// Lee las preferencias visuales ANTES del primer fotograma de Flutter.
+  /// No dispara un notifyListeners con el tema temporal por defecto.
+  Future<void> loadInitialAppearance() async {
+    settings = await repo.settings();
+  }
+
   Future<void> refresh() async {
     busy = true;
     notifyListeners();

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:gym_system_management_lite/data/app_database.dart';
 import 'package:gym_system_management_lite/data/gym_repository.dart';
+import 'package:gym_system_management_lite/state/gym_store.dart';
 import 'package:gym_system_management_lite/services/backup_service.dart';
 
 void main() {
@@ -25,6 +27,18 @@ void main() {
     expect((await repo.settings())['studio_name'], 'Mi estudio');
     expect(await repo.clients(), isEmpty);
     expect(await repo.payments(), isEmpty);
+  });
+
+  test('La identidad visual está disponible antes del primer menú', () async {
+    await repo.saveSetting('color_index', '4');
+    await repo.saveSetting('theme_mode', 'dark');
+    await repo.saveSetting('studio_name', 'Mi estudio bordó');
+    final store = GymStore(repo);
+    await store.loadInitialAppearance();
+    expect(store.colorIndex, 4);
+    expect(store.themeMode, ThemeMode.dark);
+    expect(store.studioName, 'Mi estudio bordó');
+    expect(store.clients, isEmpty);
   });
 
   test('La apariencia puede guardarse sin modificar clientes ni planes', () async {

@@ -18,7 +18,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_AR');
   final store = GymStore(GymRepository(AppDatabase()));
-  // La pantalla aparece antes de que SQLite termine de cargar los datos.
+  // Cargamos primero únicamente la identidad visual para evitar que se
+  // muestre el azul por defecto antes del color elegido por el estudio.
+  // El resto de la información se lee mientras se muestra Higea.
+  try {
+    await store.loadInitialAppearance();
+  } catch (e) {
+    runApp(MaterialApp(home: Scaffold(
+      body: SafeArea(child: Center(child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text('No se pudo abrir la configuración local. '
+          'No desinstales la app sin revisar tus respaldos.\n\n$e'),
+      ))),
+    )));
+    return;
+  }
   final initialLoad = store.refresh();
   runApp(GymLiteApp(store: store, initialLoad: initialLoad));
 }
@@ -74,7 +88,7 @@ class HigeaLaunchScreen extends StatelessWidget {
       Expanded(child: Center(child: Image(
         image: AssetImage('assets/branding/higea_splash.png'),
         fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
+        filterQuality: FilterQuality.high,
       ))),
       Padding(
         padding: EdgeInsets.only(bottom: 35, top: 10),
