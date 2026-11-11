@@ -25,3 +25,8 @@ android/key.properties
 *.p12
 .env
 .env.*
+
+# Nunca subir claves privadas del sistema de licencias
+*.private.json
+*signing*.json
+*licencia*privada*.json

@@ -1,7 +1,7 @@
 name: gym_system_management_lite
 description: Gestión offline de clientes, cuotas y cobros para pequeños estudios.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -19,6 +19,7 @@ dependencies:
   share_plus: ^11.0.0
   cross_file: ^0.3.4
   url_launcher: ^6.3.3
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
