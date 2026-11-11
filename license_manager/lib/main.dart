@@ -127,7 +127,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
         ? 'Tu clave de prueba gratuita de Higea Fitness (7 días):'
         : 'Tu licencia comercial permanente de Higea Fitness:';
     await SharePlus.instance.share(ShareParams(
-      text: '$description\n\n$license!\n\nCopiá y pegá la clave en la pantalla de activación.',
+      text: '$description\n\n${license!}\n\nCopiá y pegá la clave en la pantalla de activación.',
       title: 'Licencia Higea Fitness',
     ));
   }
