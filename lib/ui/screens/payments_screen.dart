@@ -54,8 +54,8 @@ class PaymentsScreen extends StatelessWidget {
                       (other) => other.clientId == payment.clientId
                           && !other.voided && other.id > payment.id),
                     onVoid: () => _void(context, payment),
-                    onReceipt: () => ReceiptService.share(context, store, payment),
-                    onWhatsApp: () => ReceiptService.whatsapp(context, store, payment));
+                    onReceipt: () => ReceiptService.sendToClient(context, store, payment),
+                    onSave: () => ReceiptService.saveToDevice(context, store, payment));
                 },
               ))),
       ]);
@@ -85,12 +85,12 @@ class PaymentsScreen extends StatelessWidget {
 
 class _PaymentRow extends StatelessWidget {
   const _PaymentRow({required this.payment, required this.canVoid, required this.onVoid,
-    required this.onReceipt, required this.onWhatsApp});
+    required this.onReceipt, required this.onSave});
   final StudioPayment payment;
   final bool canVoid;
   final VoidCallback onVoid;
   final VoidCallback onReceipt;
-  final VoidCallback onWhatsApp;
+  final VoidCallback onSave;
   @override
   Widget build(BuildContext context) => ContentCard(child: Row(children: [
     CircleAvatar(child: Icon(payment.voided ? Icons.block : Icons.payments_outlined)),
@@ -111,13 +111,13 @@ class _PaymentRow extends StatelessWidget {
         icon: const Icon(Icons.more_horiz),
         onSelected: (action) {
           if (action == 'share') onReceipt();
-          if (action == 'whatsapp') onWhatsApp();
+          if (action == 'save') onSave();
           if (action == 'void') onVoid();
         },
         itemBuilder: (_) => [
-          const PopupMenuItem(value: 'share', child: Text('Compartir constancia')),
           if (!payment.voided)
-            const PopupMenuItem(value: 'whatsapp', child: Text('Enviar por WhatsApp')),
+            const PopupMenuItem(value: 'share', child: Text('Compartir comprobante')),
+          const PopupMenuItem(value: 'save', child: Text('Guardar comprobante')),
           if (canVoid)
             const PopupMenuItem(value: 'void', child: Text('Anular último cobro')),
         ],

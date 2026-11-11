@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:whatsapp_share_plus/whatsapp_share_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../core/formatters.dart';
 import '../data/models.dart';
 import '../state/gym_store.dart';
@@ -124,19 +123,78 @@ class ReceiptService {
     return Uint8List.fromList(await pdf.save());
   }
 
-  static Future<void> share(BuildContext context, GymStore store, StudioPayment payment) async {
-    try {
-      final bytes = await buildTicketPdf(
-        studioName: store.studioName,
-        payment: payment,
+  static String receiptFileName(StudioPayment payment) =>
+      'comprobante-' + payment.id.toString().padLeft(6, '0') + '.pdf';
+
+  static Future<Uint8List> _pdf(GymStore store, StudioPayment payment) =>
+      buildTicketPdf(
+        studioName: store.studioName, payment: payment,
         logoBase64: store.settings['studio_logo_b64'],
       );
-      await Printing.sharePdf(
+
+  /// Guardar en la carpeta elegida por el usuario mediante Android SAF.
+  static Future<void> saveToDevice(
+    BuildContext context, GymStore store, StudioPayment payment,
+  ) async {
+    try {
+      final bytes = await _pdf(store, payment);
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Guardar comprobante PDF',
+        fileName: receiptFileName(payment),
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
         bytes: bytes,
-        filename: 'ticket-gym-' + payment.id.toString().padLeft(6, '0') + '.pdf',
       );
+      if (path != null && context.mounted) {
+        notice(context, 'Comprobante guardado.');
+      }
     } catch (e) {
-      if (context.mounted) notice(context, 'No se pudo generar o compartir el PDF: $e');
+      if (context.mounted) {
+        notice(context, 'No se pudo guardar el comprobante: $e');
+      }
+    }
+  }
+
+  /// Abre WhatsApp con el PDF preparado para el celular registrado.
+  /// WhatsApp decide si abre el chat directo o solicita elegir el contacto;
+  /// el envío final siempre lo confirma el usuario desde WhatsApp.
+  static Future<void> sendToClient(
+    BuildContext context, GymStore store, StudioPayment payment,
+  ) async {
+    if (payment.voided) {
+      notice(context, 'El cobro está anulado; no se puede enviar como pago válido.');
+      return;
+    }
+    final phone = store.clientById(payment.clientId)?.phone ?? '';
+    final digits = whatsappPhone(phone);
+    if (digits == null) {
+      notice(context, 'Primero cargá el celular del cliente, con código de país, '
+        'desde su ficha. Si es argentino, la app agrega +54 9 automáticamente.');
+      return;
+    }
+    try {
+      final bytes = await _pdf(store, payment);
+      final result = await WhatsAppShare.share(
+        phone: '+' + digits,
+        text: 'Hola ' + payment.clientName + ', te compartimos tu '
+            'constancia de pago de ' + store.studioName +
+            '. Vencimiento: ' + formatDate(payment.periodEnd) + '.',
+        files: [ShareFile.fromBytes(bytes, name: receiptFileName(payment))],
+        allowFallback: false,
+      );
+      if (!context.mounted) return;
+      if (result.status == ShareStatus.sheetPresented) {
+        notice(context, 'WhatsApp solicita elegir el destinatario. '
+          'Seleccioná el cliente y confirmá el envío del PDF.');
+      }
+      if (result.status == ShareStatus.fallback) {
+        notice(context, 'WhatsApp no pudo adjuntar el PDF. '
+          'Usá Guardar comprobante para conservarlo.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        notice(context, 'No se pudo abrir WhatsApp con el comprobante: $e');
+      }
     }
   }
 
@@ -150,24 +208,4 @@ class ReceiptService {
     return digits;
   }
 
-  static Future<void> whatsapp(BuildContext context, GymStore store, StudioPayment payment) async {
-    final phone = store.clientById(payment.clientId)?.phone ?? '';
-    final digits = whatsappPhone(phone);
-    if (digits == null) {
-      notice(context, 'Para enviar directo, guardá el teléfono con código internacional (+549...). '
-        'Podés usar Compartir constancia para elegir el contacto manualmente.');
-      return;
-    }
-    final uri = Uri.https('wa.me', '/$digits', {
-      'text': content(store.studioName, payment),
-    });
-    try {
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && context.mounted) {
-        notice(context, 'No se pudo abrir WhatsApp. Usá Compartir constancia.');
-      }
-    } catch (e) {
-      if (context.mounted) notice(context, 'No se pudo abrir WhatsApp: $e');
-    }
-  }
 }

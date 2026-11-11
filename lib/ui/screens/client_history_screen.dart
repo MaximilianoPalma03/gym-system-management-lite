@@ -65,11 +65,19 @@ class ClientHistoryScreen extends StatelessWidget {
                 if (payment.voided) const Text('COBRO ANULADO',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => ReceiptService.share(context, store, payment),
-                  icon: const Icon(Icons.ios_share_outlined),
-                  label: const Text('Compartir constancia'),
-                ),
+                Wrap(spacing: 4, children: [
+                  if (!payment.voided)
+                    TextButton.icon(
+                      onPressed: () => ReceiptService.sendToClient(context, store, payment),
+                      icon: const Icon(Icons.send_outlined),
+                      label: const Text('Compartir comprobante'),
+                    ),
+                  TextButton.icon(
+                    onPressed: () => ReceiptService.saveToDevice(context, store, payment),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Guardar comprobante'),
+                  ),
+                ]),
               ])),
             )),
             const SizedBox(height: 24),
