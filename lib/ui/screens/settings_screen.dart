@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/formatters.dart';
+import '../../core/billing.dart';
 import '../../data/models.dart';
 import '../../services/backup_service.dart';
 import '../../state/gym_store.dart';
@@ -325,28 +326,187 @@ class _PlanEditor extends StatefulWidget {
 class _PlanEditorState extends State<_PlanEditor> {
   final key = GlobalKey<FormState>();
   late final name = TextEditingController(text: widget.plan?.name ?? '');
-  late final days = TextEditingController(text: (widget.plan?.durationDays ?? 30).toString());
-  late final months = TextEditingController(text: (widget.plan?.cycleMonths ?? 1).toString());
-  late String cycleKind = widget.plan?.cycleKind ?? 'days';
   late final price = TextEditingController(
     text: ((widget.plan?.priceCents ?? 0) / 100).toStringAsFixed(0));
+  late final customNumber = TextEditingController(text: _customNumber.toString());
   late bool active = widget.plan?.active ?? true;
+  late String duration = _initialDuration();
+  late String customUnit = widget.plan?.cycleKind == 'months' ? 'months' : 'days';
   bool saving = false;
+
+  int get _customNumber => widget.plan?.cycleKind == 'months'
+      ? widget.plan!.cycleMonths : widget.plan?.durationDays ?? 30;
+
+  String _initialDuration() {
+    final plan = widget.plan;
+    if (plan == null) return 'month';
+    if (plan.cycleKind == 'months' && plan.cycleMonths == 1) return 'month';
+    if (plan.cycleKind == 'days') {
+      switch (plan.durationDays) {
+        case 7: return 'week';
+        case 15: return 'fortnight';
+        case 30: return 'days30';
+      }
+    }
+    return 'custom';
+  }
 
   @override
   void dispose() {
-    name.dispose(); days.dispose(); months.dispose(); price.dispose();
+    name.dispose();
+    customNumber.dispose();
+    price.dispose();
     super.dispose();
   }
+
+  String get cycleKind => duration == 'month' ||
+      (duration == 'custom' && customUnit == 'months') ? 'months' : 'days';
+
+  int get cycleMonths => duration == 'month' ? 1
+      : duration == 'custom' && customUnit == 'months'
+          ? int.tryParse(customNumber.text) ?? 1 : 1;
+
+  int get durationDays {
+    switch (duration) {
+      case 'week': return 7;
+      case 'fortnight': return 15;
+      case 'days30': return 30;
+      case 'custom':
+        return customUnit == 'months' ? 30 : int.tryParse(customNumber.text) ?? 30;
+      default: return 30;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Ejemplo desde la fecha real del dispositivo al configurar el plan.
+    final today = DateTime.now();
+    DateTime? exampleDue;
+    final custom = duration == 'custom' ? int.tryParse(customNumber.text) : null;
+    final customValid = duration != 'custom' ||
+        (custom != null && custom >= 1 &&
+         custom <= (customUnit == 'months' ? 120 : 3650));
+    if (customValid) {
+      exampleDue = calculateBillingPeriod(
+        paidAt: today, cycleKind: cycleKind,
+        durationDays: durationDays, cycleMonths: cycleMonths,
+      ).end;
+    }
+
+    return AlertDialog(
+      title: Text(widget.plan == null ? 'Nuevo plan' : 'Editar plan'),
+      content: SingleChildScrollView(child: Form(key: key, child: Column(
+        mainAxisSize: MainAxisSize.min, children: [
+          TextFormField(
+            controller: name, maxLength: 70,
+            decoration: const InputDecoration(labelText: 'Nombre del plan'),
+            validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ingresá un nombre.' : null,
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: duration,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Duración del plan'),
+            items: const [
+              DropdownMenuItem(value: 'month', child: Text('1 mes')),
+              DropdownMenuItem(value: 'week', child: Text('7 días')),
+              DropdownMenuItem(value: 'fortnight', child: Text('15 días')),
+              DropdownMenuItem(value: 'days30', child: Text('30 días exactos')),
+              DropdownMenuItem(value: 'custom', child: Text('Otra duración')),
+            ],
+            onChanged: (v) => setState(() => duration = v ?? duration),
+          ),
+          if (duration == 'custom') ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: TextFormField(
+                controller: customNumber,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(labelText: 'Cantidad'),
+                validator: (value) {
+                  if (duration != 'custom') return null;
+                  final count = int.tryParse(value ?? '');
+                  return count == null || count < 1 ||
+                      count > (customUnit == 'months' ? 120 : 3650)
+                      ? 'Duración inválida.' : null;
+                },
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: DropdownButtonFormField<String>(
+                initialValue: customUnit,
+                decoration: const InputDecoration(labelText: 'Unidad'),
+                items: const [
+                  DropdownMenuItem(value: 'days', child: Text('Días')),
+                  DropdownMenuItem(value: 'months', child: Text('Meses')),
+                ],
+                onChanged: (value) =>
+                    setState(() => customUnit = value ?? customUnit),
+              )),
+            ]),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Ejemplo de vencimiento',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 5),
+              Text('Si el cliente empieza hoy (' + formatDate(today) + '):'),
+              Text(exampleDue == null ? 'Ingresá una duración válida.'
+                : 'Vencería el ' + formatDate(exampleDue) + '.',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(cycleKind == 'months'
+                  ? 'Mantiene el mismo día de cada mes.'
+                  : 'Suma la cantidad exacta de días contratados.',
+                style: Theme.of(context).textTheme.bodySmall),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: price,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'Precio sugerido (ARS)'),
+            validator: (v) => parseMoney(v ?? '') == null ? 'Importe inválido.' : null,
+          ),
+          SwitchListTile(
+            value: active, contentPadding: EdgeInsets.zero,
+            title: const Text('Plan activo'),
+            onChanged: (v) => setState(() => active = v),
+          ),
+          const Text('Los cambios de precio no modifican los cobros anteriores.',
+            style: TextStyle(fontSize: 12)),
+        ],
+      ))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: saving ? null : save,
+          child: Text(saving ? 'Guardando...' : 'Guardar'),
+        ),
+      ],
+    );
+  }
+
   Future<void> save() async {
-    if (!key.currentState!.validate() || saving) return;
+    if (saving || !key.currentState!.validate()) return;
     setState(() => saving = true);
     try {
       await widget.store.modify(() => widget.store.repo.savePlan(
-        id: widget.plan?.id, name: name.text,
-        durationDays: cycleKind == 'months' ? 30 : int.parse(days.text),
-        cycleKind: cycleKind, cycleMonths: cycleKind == 'months' ? int.parse(months.text) : 1,
-        priceCents: parseMoney(price.text)!, active: active));
+        id: widget.plan?.id,
+        name: name.text,
+        durationDays: durationDays,
+        cycleKind: cycleKind,
+        cycleMonths: cycleMonths,
+        priceCents: parseMoney(price.text)!,
+        active: active,
+      ));
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) notice(context, 'Error: $e');
@@ -354,62 +514,4 @@ class _PlanEditorState extends State<_PlanEditor> {
       if (mounted) setState(() => saving = false);
     }
   }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.plan == null ? 'Nuevo plan' : 'Editar plan'),
-    content: SingleChildScrollView(child: Form(key: key, child: Column(
-      mainAxisSize: MainAxisSize.min, children: [
-        TextFormField(controller: name, maxLength: 70,
-          decoration: const InputDecoration(labelText: 'Nombre del plan'),
-          validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ingresá un nombre.' : null),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: cycleKind,
-          decoration: const InputDecoration(labelText: 'Tipo de duración'),
-          items: const [
-            DropdownMenuItem(value: 'months', child: Text('Mensual calendario')),
-            DropdownMenuItem(value: 'days', child: Text('Días fijos')),
-          ],
-          onChanged: (v) => setState(() => cycleKind = v ?? 'days'),
-        ),
-        const SizedBox(height: 8),
-        if (cycleKind == 'days')
-          TextFormField(controller: days, keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Duración exacta (días)'),
-            validator: (v) {
-              if (cycleKind != 'days') return null;
-              final n = int.tryParse(v ?? '');
-              return n == null || n < 1 || n > 3650 ? 'Ingresá entre 1 y 3650 días.' : null;
-            })
-        else
-          TextFormField(controller: months, keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Cantidad de meses calendario'),
-            validator: (v) {
-              if (cycleKind != 'months') return null;
-              final n = int.tryParse(v ?? '');
-              return n == null || n < 1 || n > 120 ? 'Ingresá entre 1 y 120 meses.' : null;
-            }),
-        const SizedBox(height: 6),
-        Text(cycleKind == 'months'
-          ? 'Conserva el mismo día de vencimiento cada mes (también para días 29, 30 o 31).'
-          : 'Extiende la cuota por la cantidad exacta de días configurados.',
-          style: const TextStyle(fontSize: 12)),
-        const SizedBox(height: 8),
-        TextFormField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Precio sugerido (ARS)'),
-          validator: (v) => parseMoney(v ?? '') == null ? 'Importe inválido.' : null),
-        SwitchListTile(value: active, contentPadding: EdgeInsets.zero,
-          title: const Text('Plan activo'),
-          onChanged: (v) => setState(() => active = v)),
-        const Text('Los cambios de precio no modifican los cobros ya registrados.',
-          style: TextStyle(fontSize: 12)),
-      ],
-    ))),
-    actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-      FilledButton(onPressed: saving ? null : save,
-        child: Text(saving ? 'Guardando...' : 'Guardar')),
-    ],
-  );
 }
