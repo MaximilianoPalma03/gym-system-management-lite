@@ -6,7 +6,7 @@ const studioColors = <Color>[
 ];
 
 ThemeData buildAppTheme(int colorIndex) {
-  final seed = studioColors[colorIndex.clamp(0, studioColors.length - 1)];
+  final seed = studioColors[colorIndex.clamp(0, studioColors.length - 1).toInt()];
   final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
   return ThemeData(
     useMaterial3: true,
