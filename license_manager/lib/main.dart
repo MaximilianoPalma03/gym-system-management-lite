@@ -36,6 +36,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   final controller = TextEditingController();
   Map<String, dynamic>? key;
   String? license;
+  LicenseType licenseType = LicenseType.permanent;
   bool busy = false;
   String? error;
 
@@ -99,7 +100,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
     }
     setState(() { busy = true; error = null; });
     try {
-      final result = await issuer.issue(code);
+      final result = await issuer.issue(code, type: licenseType);
       if (mounted) setState(() => license = result);
     } catch (e) {
       if (mounted) setState(() => error = 'No se pudo generar: $e');
@@ -124,7 +125,9 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   Future<void> shareLicense() async {
     if (license == null) return;
     await SharePlus.instance.share(ShareParams(
-      text: 'Tu clave de activación para Higea Fitness:\n\n' +
+      text: ((licenseType == LicenseType.trial)
+          ? 'Tu clave de prueba gratuita de Higea Fitness (7 días):\n\n'
+          : 'Tu licencia comercial permanente de Higea Fitness:\n\n') +
         license! + '\n\nCopiá y pegá la clave en la pantalla de activación.',
       title: 'Licencia Higea Fitness',
     ));
@@ -231,6 +234,24 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text('Emitir licencia', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
+              const Text('Tipo de licencia'),
+              const SizedBox(height: 8),
+              SegmentedButton<LicenseType>(
+                segments: const [
+                  ButtonSegment(value: LicenseType.trial,
+                    label: Text('Prueba · 7 días'),
+                    icon: Icon(Icons.hourglass_bottom)),
+                  ButtonSegment(value: LicenseType.permanent,
+                    label: Text('Comercial'),
+                    icon: Icon(Icons.verified_outlined)),
+                ],
+                selected: {licenseType},
+                onSelectionChanged: (selection) => setState(() {
+                  licenseType = selection.first;
+                  license = null;
+                }),
+              ),
+              const SizedBox(height: 12),
               TextField(controller: controller, maxLength: 40, autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => setState(() => license = null),
@@ -243,10 +264,13 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
               const SizedBox(height: 6),
               FilledButton.icon(onPressed: busy ? null : issue,
                 icon: const Icon(Icons.verified_outlined),
-                label: const Text('Generar licencia')),
+                label: Text(licenseType == LicenseType.trial
+                  ? 'Generar prueba gratuita' : 'Generar licencia permanente')),
               if (license != null) ...[
                 const SizedBox(height: 18),
-                const Text('Licencia generada'),
+                Text(licenseType == LicenseType.trial
+                  ? 'Prueba gratuita · 7 días desde la activación'
+                  : 'Licencia comercial · permanente'),
                 const SizedBox(height: 8),
                 SelectableText(license!, style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 12),

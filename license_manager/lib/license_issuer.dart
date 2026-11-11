@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum LicenseType { trial, permanent }
+
 class LicenseIssuer {
   LicenseIssuer({SharedPreferencesAsync? prefs})
     : _prefs = prefs ?? SharedPreferencesAsync();
@@ -64,7 +66,9 @@ class LicenseIssuer {
     }
   }
 
-  Future<String> issue(String code) async {
+  Future<String> issue(String code, {
+    LicenseType type = LicenseType.permanent,
+  }) async {
     final id = normalizeInstallationCode(code);
     if (!isValidInstallationCode(id)) throw ArgumentError('Código de instalación inválido.');
     final data = await storedKey();
@@ -77,8 +81,11 @@ class LicenseIssuer {
       publicKey: SimplePublicKey(publicBytes, type: KeyPairType.ed25519),
       type: KeyPairType.ed25519);
     try {
-      final signature = await algorithm.sign(utf8.encode('GSL1|' + id), keyPair: pair);
-      return 'GSL1-' + base64Url.encode(signature.bytes).replaceAll('=', '');
+      final isTrial = type == LicenseType.trial;
+      final message = 'GSL2|' + (isTrial ? 'trial' : 'permanent') + '|' + id;
+      final signature = await algorithm.sign(utf8.encode(message), keyPair: pair);
+      final prefix = isTrial ? 'GSL2-T-' : 'GSL2-P-';
+      return prefix + base64Url.encode(signature.bytes).replaceAll('=', '');
     } finally {
       pair.destroy();
     }
