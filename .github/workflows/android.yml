@@ -32,3 +32,34 @@ jobs:
           name: gym-lite-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+
+  license-manager-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: license_manager
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project
+        run: flutter create --platforms=android --org ar.com.gymlite --project-name gym_lite_license_manager .
+      - name: Dependencies
+        run: flutter pub get
+      - name: Analyze manager
+        run: flutter analyze --no-fatal-infos
+      - name: Unit tests
+        run: flutter test
+      - name: Build manager debug APK
+        run: flutter build apk --debug
+      - name: Upload manager APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gym-lite-license-manager-debug-apk
+          path: license_manager/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
