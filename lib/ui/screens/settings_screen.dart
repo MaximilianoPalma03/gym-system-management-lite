@@ -85,23 +85,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _export() async {
+  Future<void> _export({bool share = false}) async {
     final password = await _askPassword(confirmation: true);
     if (!mounted || password == null || working) return;
     setState(() => working = true);
     try {
       final bytes = await BackupService(widget.store.repo).exportEncrypted(password);
       final filename = 'gym-lite-' + dateKey(DateTime.now()) + '.gymlite';
-      final params = ShareParams(
-        files: [XFile.fromData(bytes, mimeType: 'application/octet-stream')],
-        fileNameOverrides: [filename],
-        text: 'Respaldo cifrado de Gym System Management Lite',
-      );
-      final result = await SharePlus.instance.share(params);
-      if (mounted) {
-        notice(context, result.status == ShareResultStatus.dismissed
-          ? 'No se confirmó el guardado. Guardá un respaldo fuera del celular.'
-          : 'Revisá que el archivo se haya guardado fuera del celular.');
+      if (share) {
+        final params = ShareParams(
+          files: [XFile.fromData(bytes, mimeType: 'application/octet-stream')],
+          fileNameOverrides: [filename],
+          text: 'Respaldo cifrado de Gym System Management Lite',
+        );
+        final result = await SharePlus.instance.share(params);
+        if (mounted) {
+          notice(context, result.status == ShareResultStatus.dismissed
+            ? 'No se confirmó el guardado. Guardá una copia fuera del celular.'
+            : 'Verificá que el respaldo se haya guardado fuera del teléfono.');
+        }
+      } else {
+        final saved = await FilePicker.platform.saveFile(
+          dialogTitle: 'Guardar respaldo protegido',
+          fileName: filename,
+          type: FileType.custom,
+          allowedExtensions: ['gymlite'],
+          bytes: bytes,
+        );
+        if (mounted) notice(context, saved == null
+          ? 'Guardado cancelado.'
+          : 'Respaldo exportado. Conservá la contraseña en un lugar seguro.');
       }
     } catch (e) {
       if (mounted) notice(context, 'No se pudo exportar: $e');
@@ -225,9 +238,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Text('Exportá respaldos periódicos a otra ubicación. Si desinstalás '
               'la aplicación, los datos locales pueden perderse.'),
             const SizedBox(height: 16),
-            FilledButton.icon(onPressed: working ? null : _export,
+            FilledButton.icon(onPressed: working ? null : () => _export(),
+              icon: const Icon(Icons.save_alt_outlined),
+              label: Text(working ? 'Procesando...' : 'Guardar respaldo cifrado')),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(onPressed: working ? null : () => _export(share: true),
               icon: const Icon(Icons.ios_share_outlined),
-              label: Text(working ? 'Procesando...' : 'Exportar respaldo cifrado')),
+              label: const Text('Compartir respaldo')),
             const SizedBox(height: 8),
             OutlinedButton.icon(onPressed: working ? null : _import,
               icon: const Icon(Icons.restore_outlined),

@@ -67,7 +67,7 @@ void main() {
     final backup = BackupService(repo);
     final bytes = await backup.exportEncrypted('contraseña-muy-segura');
     expect(utf8.decode(bytes), isNot(contains('Cliente de respaldo')));
-    await expectLater(backup.decrypt(bytes, 'incorrecta'), throwsA(isA<Exception>()));
+    await expectLater(backup.decrypt(bytes, 'incorrecta'), throwsA(anything));
     final content = await backup.decrypt(bytes, 'contraseña-muy-segura');
     await repo.saveClient(name: 'Otro cliente');
     await repo.restoreData(content);

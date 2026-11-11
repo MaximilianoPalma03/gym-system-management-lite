@@ -16,15 +16,15 @@ Aplicación **Android offline** para estudios pequeños de pilates, yoga, gimnas
 
 Instalá Flutter SDK y Android Studio (Android SDK), luego:
 
-\`\`\`sh
+```sh
 flutter create --platforms=android --project-name gym_system_management_lite .
 flutter pub get
 flutter run
-\`\`\`
+```
 
-> \`flutter create\` genera los archivos nativos de Android y \`flutter pub get\` las dependencias. No se incluyen binarios generados ni credenciales en el repositorio.
+> `flutter create` genera los archivos nativos de Android y `flutter pub get` las dependencias. No se incluyen binarios generados ni credenciales en el repositorio.
 
-Para ejecutar pruebas: \`flutter test\`. Para obtener un APK de prueba: \`flutter build apk --debug\`.
+Para ejecutar pruebas: `flutter test`. Para obtener un APK de prueba: `flutter build apk --debug`.
 
 ### Decisiones de negocio
 
@@ -38,7 +38,7 @@ Para ejecutar pruebas: \`flutter test\`. Para obtener un APK de prueba: \`flutte
 
 ### Respaldo
 
-En Ajustes se puede compartir un archivo \`.gymlite\` protegido con una contraseña elegida al exportar y restaurarlo posteriormente. **Guardar ese archivo fuera del celular** es responsabilidad del dueño. Restaurar reemplaza la información local tras confirmación. La contraseña no se almacena en la app.
+En Ajustes se puede compartir un archivo `.gymlite` protegido con una contraseña elegida al exportar y restaurarlo posteriormente. **Guardar ese archivo fuera del celular** es responsabilidad del dueño. Restaurar reemplaza la información local tras confirmación. La contraseña no se almacena en la app.
 
 ### Estado del proyecto
 
@@ -51,3 +51,35 @@ La app no envía datos por Internet; SQLite no está cifrada en reposo. Proteger
 ## Licencia
 
 Uso privado; sin licencia de distribución definida.
+
+## Desarrollo y pruebas
+
+El repositorio contiene el código Flutter, sin credenciales, binarios ni bases reales.
+Los archivos de plataforma Android se generan localmente antes de compilar:
+
+```powershell
+flutter doctor
+flutter create --platforms=android --project-name gym_system_management_lite .
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```
+
+Para utilizar un celular físico, habilitá Depuración USB y empezá con datos ficticios.
+
+### Decisiones de datos
+
+- El precio del plan es sugerido: el importe cobrado se puede ajustar antes de registrarlo.
+- Los pagos anulados permanecen en el historial y no suman en informes.
+- Guardar un respaldo cifrado con contraseña no cifra la base SQLite del teléfono.
+- Restaurar reemplaza todo lo existente dentro de una transacción SQLite.
+- No existen reservas ni control de asistencias en esta versión.
+
+### Antes de usar datos reales
+
+Validar compilación y funcionamiento en Android, alta y cobro, renovación anticipada,
+anulación, exportación y restauración con un archivo real. Proteger el dispositivo
+con bloqueo y guardar una copia externa de los respaldos.
+
+GitHub Actions verifica análisis, pruebas y compilación debug cuando está habilitado.

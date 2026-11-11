@@ -36,8 +36,9 @@ class _ClientFormState extends State<_ClientForm> {
         id: widget.client?.id, name: name.text, phone: phone.text,
         notes: notes.text, active: widget.client?.active ?? true));
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      notice(context, 'Cliente guardado correctamente.');
+      messenger.showSnackBar(const SnackBar(content: Text('Cliente guardado correctamente.')));
     } catch (e) {
       if (mounted) notice(context, 'No se pudo guardar: $e');
     } finally {
