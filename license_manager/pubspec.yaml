@@ -1,0 +1,23 @@
+name: gym_lite_license_manager
+description: Herramienta offline privada para emitir licencias de Gym System Management Lite.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cryptography: ^2.9.0
+  shared_preferences: ^2.5.4
+  file_picker: ^10.3.3
+  share_plus: ^11.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
