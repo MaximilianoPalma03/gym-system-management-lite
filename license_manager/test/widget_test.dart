@@ -8,10 +8,23 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   });
 
-  testWidgets('El administrador abre y ofrece crear la clave maestra', (tester) async {
+  testWidgets('El administrador permite elegir prueba gratuita o licencia comercial',
+      (tester) async {
     await tester.pumpWidget(const LicenseManagerApp());
     await tester.pumpAndSettle();
     expect(find.text('Emisor privado offline'), findsOneWidget);
-    expect(find.text('Crear clave maestra'), findsOneWidget);
+    await tester.tap(find.text('Crear clave maestra'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Crear'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tipo de licencia'), findsOneWidget);
+    expect(find.text('Prueba · 7 días'), findsOneWidget);
+    expect(find.text('Comercial'), findsOneWidget);
+    expect(find.text('Generar licencia permanente'), findsOneWidget);
+
+    await tester.tap(find.text('Prueba · 7 días'));
+    await tester.pumpAndSettle();
+    expect(find.text('Generar prueba gratuita'), findsOneWidget);
   });
 }
