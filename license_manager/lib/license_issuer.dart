@@ -33,9 +33,6 @@ class LicenseIssuer {
     try {
       final privateBytes = await pair.extractPrivateKeyBytes();
       final public = await pair.extractPublicKey();
-      if (public is! SimplePublicKey) {
-        throw StateError('Ed25519 devolvió una clave pública incompatible.');
-      }
       final payload = jsonEncode({
         'format': 'gym-lite-ed25519-v1',
         'private': base64Url.encode(privateBytes),
@@ -85,10 +82,10 @@ class LicenseIssuer {
       type: KeyPairType.ed25519);
     try {
       final isTrial = type == LicenseType.trial;
-      final message = 'GSL2|' + (isTrial ? 'trial' : 'permanent') + '|' + id;
+      final message = 'GSL2|${isTrial ? 'trial' : 'permanent'}|$id';
       final signature = await algorithm.sign(utf8.encode(message), keyPair: pair);
       final prefix = isTrial ? 'GSL2-T-' : 'GSL2-P-';
-      return prefix + base64Url.encode(signature.bytes).replaceAll('=', '');
+      return '$prefix${base64Url.encode(signature.bytes).replaceAll('=', '')}';
     } finally {
       pair.destroy();
     }

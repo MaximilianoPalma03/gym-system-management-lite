@@ -14,9 +14,7 @@ void main() {
     final algorithm = Ed25519();
     final pair = await algorithm.newKeyPair();
     final privateBytes = await pair.extractPrivateKeyBytes();
-    final extractedPublicKey = await pair.extractPublicKey();
-    expect(extractedPublicKey, isA<SimplePublicKey>());
-    final publicKey = extractedPublicKey as SimplePublicKey;
+    final publicKey = await pair.extractPublicKey();
     final payload = {
       'format': 'gym-lite-ed25519-v1',
       'private': base64Url.encode(privateBytes),
@@ -49,7 +47,7 @@ void main() {
         publicKey: public,
       );
       expect(await Ed25519().verify(
-        utf8.encode('GSL2|' + item.$2 + '|A4Y3B7K2'),
+        utf8.encode('GSL2|${item.$2}|A4Y3B7K2'),
         signature: signature,
       ), true);
     }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -124,11 +123,11 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
 
   Future<void> shareLicense() async {
     if (license == null) return;
+    final description = licenseType == LicenseType.trial
+        ? 'Tu clave de prueba gratuita de Higea Fitness (7 días):'
+        : 'Tu licencia comercial permanente de Higea Fitness:';
     await SharePlus.instance.share(ShareParams(
-      text: ((licenseType == LicenseType.trial)
-          ? 'Tu clave de prueba gratuita de Higea Fitness (7 días):\n\n'
-          : 'Tu licencia comercial permanente de Higea Fitness:\n\n') +
-        license! + '\n\nCopiá y pegá la clave en la pantalla de activación.',
+      text: '$description\n\n$license!\n\nCopiá y pegá la clave en la pantalla de activación.',
       title: 'Licencia Higea Fitness',
     ));
   }
