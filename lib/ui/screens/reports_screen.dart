@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/formatters.dart';
@@ -19,7 +18,7 @@ class ReportsScreen extends StatelessWidget {
           && p.paidAt.month == m.month).fold<int>(0, (sum, p) => sum + p.amountCents);
       final six = List.generate(6, (i) => DateTime(now.year, now.month - (5 - i)));
       final values = six.map(monthSum).toList();
-      final maxValue = math.max(1, values.fold<int>(0, math.max));
+      final maxValue = values.fold<int>(1, (current, value) => value > current ? value : current);
       final monthPayments = valid.where((p) => p.paidAt.year == now.year
         && p.paidAt.month == now.month).toList();
       final methods = <String, int>{};
