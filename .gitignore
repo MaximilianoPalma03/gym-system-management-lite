@@ -1,0 +1,27 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.iml
+.idea/
+.vscode/
+android/.gradle/
+android/local.properties
+android/key.properties
+**/GeneratedPluginRegistrant.*
+# Private files and real client data
+*.db
+*.sqlite
+*.sqlite3
+*.gymlite
+*.jks
+*.keystore
+*.pem
+*.p12
+.env
+.env.*
