@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +27,7 @@ class LicenseGate extends StatefulWidget {
   State<LicenseGate> createState() => _LicenseGateState();
 }
 
-class _LicenseGateState extends State<LicenseGate> {
+class _LicenseGateState extends State<LicenseGate> with WidgetsBindingObserver {
   // Se inicializa solo cuando la activación realmente se requiere.
   // Evita acceder al plugin nativo durante el modo debug y pruebas de widgets.
   late final LicenseService _service = LicenseService();
@@ -34,17 +35,54 @@ class _LicenseGateState extends State<LicenseGate> {
   late Future<LicenseStatus> _status = _service.status();
   bool _saving = false;
   bool _exporting = false;
+  bool _observingLifecycle = false;
+  Timer? _trialTimer;
   String? _message;
+
+  void _startTrialMonitoring() {
+    if (_trialTimer != null) return;
+    WidgetsBinding.instance.addObserver(this);
+    _observingLifecycle = true;
+    _trialTimer = Timer.periodic(const Duration(minutes: 1), (_) => _refreshStatus());
+  }
+
+  void _stopTrialMonitoring() {
+    _trialTimer?.cancel();
+    _trialTimer = null;
+    if (_observingLifecycle) {
+      WidgetsBinding.instance.removeObserver(this);
+      _observingLifecycle = false;
+    }
+  }
+
+  Future<void> _refreshStatus() async {
+    try {
+      final updated = await _service.status();
+      if (!mounted) return;
+      setState(() => _status = Future.value(updated));
+      if (!updated.isTrial || updated.trialExpired) _stopTrialMonitoring();
+    } catch (_) {
+      // Un error transitorio no borra ni modifica la licencia guardada.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshStatus();
+  }
 
   @override
   void dispose() {
+    _stopTrialMonitoring();
     _field.dispose();
     super.dispose();
   }
 
-  Future<void> _sendCodeToSeller(String installationId) async {
+  Future<void> _sendCodeToSeller(
+    String installationId, {bool trialExpired = false}) async {
     try {
-      final uri = SellerContact.activationRequest(installationId);
+      final uri = SellerContact.activationRequest(
+        installationId, trialExpired: trialExpired);
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -69,6 +107,7 @@ class _LicenseGateState extends State<LicenseGate> {
         _message = ok ? null : 'Clave inválida para esta instalación o tipo de licencia.';
         _status = Future.value(updated);
       });
+      if (updated.isPermanent) _stopTrialMonitoring();
       return ok && updated.isPermanent;
     } catch (_) {
       if (mounted) setState(() {
@@ -195,6 +234,7 @@ class _LicenseGateState extends State<LicenseGate> {
 
         if (status.valid && (kReleaseMode || !_debugPreviewActivation)) {
           if (!status.isTrial) return widget.child;
+          _startTrialMonitoring();
           return Stack(children: [
             widget.child,
             Positioned(
@@ -214,7 +254,7 @@ class _LicenseGateState extends State<LicenseGate> {
                       children: [
                         const Text('Prueba gratuita',
                           style: TextStyle(fontWeight: FontWeight.w700)),
-                        Text('Quedan \${status.trialDaysRemaining} días',
+                        Text('Quedan ${status.trialDaysRemaining} días',
                           style: Theme.of(context).textTheme.bodySmall),
                       ],
                     )),
@@ -267,7 +307,8 @@ class _LicenseGateState extends State<LicenseGate> {
                   icon: const Icon(Icons.copy), label: const Text('Copiar código'),
                 ),
                 TextButton.icon(
-                  onPressed: () => _sendCodeToSeller(status.installationId),
+                  onPressed: () => _sendCodeToSeller(
+                    status.installationId, trialExpired: expiredTrial),
                   icon: const Icon(Icons.message_outlined),
                   label: const Text('Enviar código al vendedor'),
                 ),

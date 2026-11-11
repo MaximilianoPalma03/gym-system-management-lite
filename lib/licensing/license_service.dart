@@ -137,9 +137,9 @@ class LicenseService {
         // Permite reintentar la misma clave, pero nunca iniciar otra prueba.
         return existingKind == LicenseKind.trial && existing == normalized;
       }
+      await _preferences.setString(_licenseKey, normalized);
       await _preferences.setInt(
         _trialStartedKey, _clock().toUtc().millisecondsSinceEpoch);
-      await _preferences.setString(_licenseKey, normalized);
       return true;
     }
 

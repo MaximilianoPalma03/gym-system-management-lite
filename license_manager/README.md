@@ -1,43 +1,35 @@
-# Gym Lite License Manager (Android)
+# Higea Fitness License Manager (Android)
 
-Aplicación móvil exclusiva del vendedor para crear licencias permanentes
-**sin Internet**. No forma parte del APK que reciben los estudios.
-
-## Cómo iniciarla
-
-Desde la raíz del repositorio:
-
-```powershell
-cd license_manager
-flutter create --platforms=android --org ar.com.gymlite --project-name gym_lite_license_manager .
-flutter pub get
-flutter run
-```
-
-Si se genera una carpeta nativa, queda como proyecto Flutter independiente.
+Aplicación privada del vendedor para emitir licencias offline. No forma parte
+del APK que reciben los estudios.
 
 ## Primera configuración
 
-1. Abrí la app administrativa en tu celular.
-2. Elegí **Crear clave maestra** una sola vez.
-3. Elegí **Respaldar clave maestra** y guardá el archivo `.gslkey`
-   fuera del celular. La app no tiene PIN ni biometría.
-4. Copiá la **clave pública** que aparece.
-5. Compilá el APK comercial de Gym Lite con
-   `--dart-define=GYM_LITE_PUBLIC_KEY=CLAVE_PUBLICA`.
-6. El cliente instala ese APK, copia su código de instalación y te lo envía.
-7. En License Manager pegás el código, tocás **Generar licencia** y luego **Enviar**.
-8. El cliente copia/pega la clave y queda activado en ese teléfono.
+1. Abrí License Manager en tu teléfono.
+2. Creá una sola clave maestra y guardá una copia .gslkey fuera del teléfono.
+3. Copiá la clave pública para incorporarla al APK comercial.
+4. No vuelvas a crear otra clave maestra para la misma edición de Higea.
 
-### Importante
+## Emitir una prueba gratuita
 
-- La **clave privada** queda en el almacenamiento de la app administradora.
-  No se sube automáticamente al repositorio ni se manda al cliente.
-- Si se borra el almacenamiento o cambiás de teléfono sin haber guardado
-  el archivo `.gslkey`, perdés la capacidad de emitir claves compatibles.
-- Cualquiera con una copia de la clave privada puede emitir licencias.
-  Un teléfono sin Internet no significa que la clave esté protegida
-  contra extracción física o malware.
-- Una licencia es para una instalación, no para cada cuenta en la nube.
-- No generes una segunda clave maestra para la misma edición comercial:
-  las claves viejas y nuevas no serán intercambiables.
+1. En Higea del comprador, pedile que toque **Enviar código al vendedor**.
+2. En License Manager seleccioná **Prueba · 7 días**.
+3. Pegá el código de instalación de ocho caracteres.
+4. Tocá **Generar prueba gratuita** y luego **Enviar por WhatsApp u otra app**.
+5. Los siete días comienzan cuando el comprador activa la clave.
+
+## Emitir una licencia comercial
+
+1. Usá el mismo código de instalación del comprador.
+2. Seleccioná **Comercial**.
+3. Tocá **Generar licencia permanente** y enviásela.
+4. El cliente la introduce desde **Activar compra** o desde la pantalla de
+   prueba vencida. La conversión conserva todos sus datos.
+
+## Seguridad y respaldo
+
+- La clave privada queda en el almacenamiento de la app administradora.
+- Respaldá el archivo .gslkey fuera del teléfono.
+- Quien obtenga la clave privada puede emitir licencias; no la compartas.
+- No requiere PIN, biometría ni Internet para firmar.
+- Compartir por WhatsApp sí requiere conexión.
