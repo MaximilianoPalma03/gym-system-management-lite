@@ -20,6 +20,8 @@ dependencies:
   cross_file: ^0.3.4
   url_launcher: ^6.3.3
   shared_preferences: ^2.5.4
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
 dev_dependencies:
   flutter_test:
