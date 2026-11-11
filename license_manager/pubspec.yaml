@@ -1,7 +1,7 @@
 name: gym_lite_license_manager
-description: Herramienta offline privada para emitir licencias de Gym System Management Lite.
+description: Herramienta offline privada para emitir pruebas y licencias de Higea Fitness.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.7.0 <4.0.0'

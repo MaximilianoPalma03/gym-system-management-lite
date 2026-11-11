@@ -50,7 +50,7 @@ La app no envía datos por Internet; SQLite no está cifrada en reposo. Proteger
 
 ## Licencia
 
-Uso privado; sin licencia de distribución definida.
+El APK comercial se activa por instalación. Se puede ofrecer una prueba gratuita de 7 días y luego convertirla en una licencia comercial permanente sin perder los datos.
 
 ## Desarrollo y pruebas
 
@@ -91,8 +91,9 @@ GitHub Actions verifica análisis, pruebas y compilación debug cuando está hab
 - Solo anulación del último cobro válido del cliente.
 - Constancias PDF tipo ticket **80 x 160 mm** para compartir por Android.
 - Registro de celulares: Argentina por defecto, con Chile, Brasil y otros países.
-- Licencia permanente Ed25519 por instalación, sin servidor.
-- Aplicación separada `license_manager/` para generar licencias desde el teléfono.
+- Licencias Ed25519 por instalación: prueba gratuita de 7 días y licencia comercial permanente.
+- Conversión de prueba a compra sin reinstalar ni perder datos.
+- Aplicación separada `license_manager/` para emitir ambas licencias desde el teléfono.
 
 Probá ambas aplicaciones con datos ficticios antes de distribuir un APK release.
 
@@ -121,7 +122,7 @@ durante la carga real de SQLite, sin añadir pausas artificiales.
 En Ajustes puede elegirse Claro, Oscuro o Sistema, conservando el color,
 el nombre y el logo de cada estudio.
 
-No se cambia el identificador de Android ni el formato de licencia.
+No se cambia el identificador de Android. Las licencias permanentes GSL1 siguen siendo válidas; las nuevas emisiones usan GSL2.
 Para compilar en otras máquinas, agregar las imágenes aprobadas al
 repositorio una vez verificadas; no contienen datos ni secretos.
 
