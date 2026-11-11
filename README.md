@@ -124,3 +124,7 @@ el nombre y el logo de cada estudio.
 No se cambia el identificador de Android ni el formato de licencia.
 Para compilar en otras máquinas, agregar las imágenes aprobadas al
 repositorio una vez verificadas; no contienen datos ni secretos.
+
+## Compilación comercial firmada
+
+Consultar la [guía de firma y distribución](docs/DISTRIBUCION_COMERCIAL.md). El procedimiento crea un APK de prueba 0.9.0 y una actualización 0.9.1 para verificar la conservación de datos con firma de producción. Nunca subir claves privadas ni contraseñas al repositorio.
