@@ -11,7 +11,7 @@ class SellerContact {
         ? installationId.substring(0, 4) + '-' + installationId.substring(4)
         : installationId;
     return Uri.https('wa.me', '/$whatsappPhone', {
-      'text': 'Hola, quiero activar Gym System Management Lite. '
+      'text': 'Hola, quiero activar Higea Fitness. '
           'Mi código de instalación es: $display',
     });
   }

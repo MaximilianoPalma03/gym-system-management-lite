@@ -18,20 +18,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_AR');
   final store = GymStore(GymRepository(AppDatabase()));
-  try {
-    await store.refresh();
-    runApp(GymLiteApp(store: store));
-  } catch (e) {
-    runApp(MaterialApp(home: Scaffold(body: SafeArea(child: Center(child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Text('No se pudo abrir la base de datos local. No desinstales la app sin revisar tus respaldos.\n\n$e'),
-    ))))));
-  }
+  // La pantalla aparece antes de que SQLite termine de cargar los datos.
+  final initialLoad = store.refresh();
+  runApp(GymLiteApp(store: store, initialLoad: initialLoad));
 }
 
 class GymLiteApp extends StatelessWidget {
-  const GymLiteApp({super.key, required this.store});
+  const GymLiteApp({super.key, required this.store, required this.initialLoad});
   final GymStore store;
+  final Future<void> initialLoad;
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: store,
@@ -48,8 +43,48 @@ class GymLiteApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: LicenseGate(child: GymShell(store: store)),
+      home: FutureBuilder<void>(
+        future: initialLoad,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const HigeaLaunchScreen();
+          }
+          if (snapshot.hasError) {
+            return Scaffold(body: SafeArea(child: Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('No se pudo abrir la base de datos local. '
+                'No desinstales la app sin revisar tus respaldos.\n\n'
+                '${snapshot.error}'),
+            ))));
+          }
+          return LicenseGate(child: GymShell(store: store));
+        },
+      ),
     ),
+  );
+}
+
+class HigeaLaunchScreen extends StatelessWidget {
+  const HigeaLaunchScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    backgroundColor: Color(0xFF061D33),
+    body: SafeArea(child: Column(children: [
+      Expanded(child: Center(child: Image(
+        image: AssetImage('assets/branding/higea_splash.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+      ))),
+      Padding(
+        padding: EdgeInsets.only(bottom: 35, top: 10),
+        child: SizedBox(width: 25, height: 25,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: Color(0xFF9EEA4D),
+          )),
+      ),
+    ])),
   );
 }
 

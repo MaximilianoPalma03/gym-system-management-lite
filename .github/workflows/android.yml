@@ -20,6 +20,8 @@ jobs:
         run: flutter create --platforms=android --project-name gym_system_management_lite .
       - name: Get dependencies
         run: flutter pub get
+      - name: Generate Higea launcher icon
+        run: dart run flutter_launcher_icons
       - name: Configure native splash
         run: dart run tool/configurar_splash.dart
       - name: Static analysis

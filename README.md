@@ -1,6 +1,6 @@
-# Gym System Management Lite
+# Higea Fitness
 
-Aplicación **Android offline** para estudios pequeños de pilates, yoga, gimnasios y entrenadores independientes.
+**Higea Fitness** es una aplicación **Android offline** para estudios pequeños de pilates, yoga, gimnasios y entrenadores independientes.
 
 ## Alcance de la versión inicial
 
@@ -100,3 +100,27 @@ Guías: [Reglas de cuotas](docs/REGLAS_CUOTAS.md),
 [Licencias](docs/LICENCIAS.md),
 [License Manager](license_manager/README.md) y
 [Pruebas](docs/PRUEBAS_PARA_EL_USUARIO.md).
+
+
+## Identidad Higea Fitness (rama de desarrollo)
+
+Los recursos gráficos aprobados deben descomprimirse dentro de
+`assets/branding/` antes de compilar:
+
+```bash
+flutter pub get
+dart run flutter_launcher_icons
+dart run tool/configurar_splash.dart
+flutter analyze --no-fatal-infos
+flutter test
+flutter run
+```
+
+El splash nativo usa el ícono de Higea. Flutter muestra la imagen completa
+durante la carga real de SQLite, sin añadir pausas artificiales.
+En Ajustes puede elegirse Claro, Oscuro o Sistema, conservando el color,
+el nombre y el logo de cada estudio.
+
+No se cambia el identificador de Android ni el formato de licencia.
+Para compilar en otras máquinas, agregar las imágenes aprobadas al
+repositorio una vez verificadas; no contienen datos ni secretos.

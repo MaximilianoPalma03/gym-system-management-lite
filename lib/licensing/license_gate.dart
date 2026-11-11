@@ -86,7 +86,7 @@ class _LicenseGateState extends State<LicenseGate> {
                   child: Icon(Icons.fitness_center, color: Colors.white, size: 42),
                 ),
                 SizedBox(height: 20),
-                Text('Gym Lite',
+                Text('Higea Fitness',
                     style: TextStyle(color: Colors.white,
                       fontWeight: FontWeight.w700, fontSize: 24)),
                 SizedBox(height: 18),
@@ -111,7 +111,7 @@ class _LicenseGateState extends State<LicenseGate> {
                 Icon(Icons.verified_user_outlined, size: 66,
                   color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 14),
-                Text('Activar Gym Lite', textAlign: TextAlign.center,
+                Text('Activar Higea Fitness', textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 10),
                 const Text('La activación es permanente y funciona sin Internet. '
