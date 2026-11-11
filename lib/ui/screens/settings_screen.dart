@@ -82,6 +82,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.store.modify(() => widget.store.repo.saveSetting('theme_mode', theme));
   }
 
+  Future<void> _editInactiveDays() async {
+    var input = widget.store.inactiveAfterDays.toString();
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, refresh) {
+          final days = int.tryParse(input);
+          return AlertDialog(
+            title: const Text('Inactividad por falta de pago'),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Después del vencimiento, el cliente sigue '
+                'Pendiente durante el plazo indicado. Al día siguiente '
+                'pasa a Inactivo. Sus datos y pagos se conservan.'),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: input,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Días después del vencimiento',
+                  helperText: 'Entre 1 y 365 días (recomendado: 30)'),
+                onChanged: (value) => refresh(() => input = value),
+              ),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialog),
+                child: const Text('Cancelar')),
+              FilledButton(
+                onPressed: days != null && days >= 1 && days <= 365
+                  ? () => Navigator.pop(dialog, days) : null,
+                child: const Text('Guardar')),
+            ],
+          );
+        },
+      ),
+    );
+    if (selected == null) return;
+    try {
+      await widget.store.modify(() =>
+          widget.store.repo.saveSetting('inactive_after_days', '$selected'));
+      if (mounted) notice(context, 'Plazo actualizado a $selected días.');
+    } catch (e) {
+      if (mounted) notice(context, 'No se pudo cambiar el plazo: $e');
+    }
+  }
+
   /// El diálogo conserva sus propios campos durante su animación de salida.
   /// No destruimos TextEditingControllers justo después del Navigator.pop:
   /// eso producía un fallo de widgets durante guardar/compartir/restaurar.
@@ -272,6 +317,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? const Icon(Icons.check, color: Colors.white) : null)),
             ]),
           ])),
+          const SizedBox(height: 16),
+          ContentCard(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Clientes e inactividad',
+                style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text('Si una cuota lleva más de 30 días vencida, el cliente '
+                'pasa a Inactivo automáticamente. Podés cambiar el plazo '
+                'y no se pierde su historial.',
+                style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('Plazo: ${widget.store.inactiveAfterDays} días'),
+                subtitle: const Text('Contados desde el vencimiento de la cuota'),
+                trailing: const Icon(Icons.edit_outlined),
+                onTap: _editInactiveDays,
+              ),
+            ],
+          )),
           const SizedBox(height: 16),
           Row(children: [
             Expanded(child: Text('Planes y precios',
