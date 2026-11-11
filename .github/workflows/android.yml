@@ -20,6 +20,8 @@ jobs:
         run: flutter create --platforms=android --project-name gym_system_management_lite .
       - name: Get dependencies
         run: flutter pub get
+      - name: Configure native splash
+        run: dart run tool/configurar_splash.dart
       - name: Static analysis
         run: flutter analyze --no-fatal-infos
       - name: Run tests
