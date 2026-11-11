@@ -4,6 +4,7 @@ import '../../data/models.dart';
 import '../../state/gym_store.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_form.dart';
+import '../../services/receipt_service.dart';
 
 class PaymentsScreen extends StatelessWidget {
   const PaymentsScreen({super.key, required this.store});
@@ -48,7 +49,13 @@ class PaymentsScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final payment = store.payments[index];
                   return _PaymentRow(
-                    payment: payment, onVoid: () => _void(context, payment));
+                    payment: payment,
+                    canVoid: !payment.voided && !store.payments.any(
+                      (other) => other.clientId == payment.clientId
+                          && !other.voided && other.id > payment.id),
+                    onVoid: () => _void(context, payment),
+                    onReceipt: () => ReceiptService.sendToClient(context, store, payment),
+                    onSave: () => ReceiptService.saveToDevice(context, store, payment));
                 },
               ))),
       ]);
@@ -77,9 +84,13 @@ class PaymentsScreen extends StatelessWidget {
 }
 
 class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({required this.payment, required this.onVoid});
+  const _PaymentRow({required this.payment, required this.canVoid, required this.onVoid,
+    required this.onReceipt, required this.onSave});
   final StudioPayment payment;
+  final bool canVoid;
   final VoidCallback onVoid;
+  final VoidCallback onReceipt;
+  final VoidCallback onSave;
   @override
   Widget build(BuildContext context) => ContentCard(child: Row(children: [
     CircleAvatar(child: Icon(payment.voided ? Icons.block : Icons.payments_outlined)),
@@ -95,10 +106,21 @@ class _PaymentRow extends StatelessWidget {
       Text(formatMoney(payment.amountCents), style: TextStyle(
         fontWeight: FontWeight.w700,
         decoration: payment.voided ? TextDecoration.lineThrough : null)),
-      if (!payment.voided) PopupMenuButton<String>(
-        tooltip: 'Acciones sobre cobro', icon: const Icon(Icons.more_horiz),
-        onSelected: (_) => onVoid(),
-        itemBuilder: (_) => [const PopupMenuItem(value: 'void', child: Text('Anular cobro'))],
+      PopupMenuButton<String>(
+        tooltip: 'Acciones sobre cobro',
+        icon: const Icon(Icons.more_horiz),
+        onSelected: (action) {
+          if (action == 'share') onReceipt();
+          if (action == 'save') onSave();
+          if (action == 'void') onVoid();
+        },
+        itemBuilder: (_) => [
+          if (!payment.voided)
+            const PopupMenuItem(value: 'share', child: Text('Compartir comprobante')),
+          const PopupMenuItem(value: 'save', child: Text('Guardar comprobante')),
+          if (canVoid)
+            const PopupMenuItem(value: 'void', child: Text('Anular último cobro')),
+        ],
       ),
     ]),
   ]));

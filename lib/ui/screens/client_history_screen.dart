@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/formatters.dart';
 import '../../state/gym_store.dart';
 import '../widgets/common.dart';
+import '../../services/receipt_service.dart';
 
 class ClientHistoryScreen extends StatelessWidget {
   const ClientHistoryScreen({super.key, required this.store, required this.clientId});
@@ -63,6 +64,20 @@ class ClientHistoryScreen extends StatelessWidget {
                 if (payment.notes.isNotEmpty) Text(payment.notes),
                 if (payment.voided) const Text('COBRO ANULADO',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 4, children: [
+                  if (!payment.voided)
+                    TextButton.icon(
+                      onPressed: () => ReceiptService.sendToClient(context, store, payment),
+                      icon: const Icon(Icons.send_outlined),
+                      label: const Text('Compartir comprobante'),
+                    ),
+                  TextButton.icon(
+                    onPressed: () => ReceiptService.saveToDevice(context, store, payment),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Guardar comprobante'),
+                  ),
+                ]),
               ])),
             )),
             const SizedBox(height: 24),

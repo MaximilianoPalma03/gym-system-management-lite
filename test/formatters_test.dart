@@ -1,7 +1,10 @@
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system_management_lite/core/formatters.dart';
 
 void main() {
+  setUpAll(() async => initializeDateFormatting('es_AR'));
+
   test('Importes argentinos, puntos y comas', () {
     expect(parseMoney('12500'), 1250000);
     expect(parseMoney('12.500'), 1250000);

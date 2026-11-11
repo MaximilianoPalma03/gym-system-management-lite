@@ -10,14 +10,39 @@ class AppDatabase {
     if (_db != null && _db!.isOpen) return _db!;
     final base = _testPath ?? p.join(await getDatabasesPath(), 'gym_lite.db');
     _db = await openDatabase(
-      base, version: 1,
+      base, version: 3,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE payments ADD COLUMN duration_days INTEGER');
+          // La duración histórica se reconstruye desde el período guardado, no
+          // desde el plan actual, que pudo haber sido modificado.
+          await db.execute('''
+            UPDATE payments
+            SET duration_days = CAST(julianday(period_end) - julianday(period_start) + 1 AS INTEGER)
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute("ALTER TABLE plans ADD COLUMN cycle_kind TEXT NOT NULL DEFAULT 'days'");
+          await db.execute("ALTER TABLE plans ADD COLUMN cycle_months INTEGER NOT NULL DEFAULT 1");
+          await db.execute("ALTER TABLE clients ADD COLUMN billing_anchor_day INTEGER");
+          await db.execute("ALTER TABLE payments ADD COLUMN cycle_kind TEXT NOT NULL DEFAULT 'days'");
+          await db.execute("ALTER TABLE payments ADD COLUMN cycle_months INTEGER NOT NULL DEFAULT 1");
+          await db.execute("ALTER TABLE payments ADD COLUMN billing_anchor_day INTEGER");
+          await db.insert('plans', {
+            'name': 'Mensual calendario', 'duration_days': 30, 'cycle_kind': 'months',
+            'cycle_months': 1, 'price_cents': 0,
+          });
+        }
+      },
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             duration_days INTEGER NOT NULL CHECK(duration_days BETWEEN 1 AND 3650),
+            cycle_kind TEXT NOT NULL DEFAULT 'days',
+            cycle_months INTEGER NOT NULL DEFAULT 1,
             price_cents INTEGER NOT NULL CHECK(price_cents >= 0),
             active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1))
           )''');
@@ -30,6 +55,7 @@ class AppDatabase {
             active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
             plan_id INTEGER REFERENCES plans(id) ON DELETE RESTRICT,
             due_date TEXT,
+            billing_anchor_day INTEGER,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
           )''');
@@ -39,6 +65,10 @@ class AppDatabase {
             client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
             plan_id INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
             plan_name TEXT NOT NULL,
+            duration_days INTEGER NOT NULL CHECK(duration_days BETWEEN 1 AND 3650),
+            cycle_kind TEXT NOT NULL DEFAULT 'days',
+            cycle_months INTEGER NOT NULL DEFAULT 1,
+            billing_anchor_day INTEGER,
             amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
             method TEXT NOT NULL CHECK(method IN ('Efectivo','Transferencia','Tarjeta','Otro')),
             paid_at TEXT NOT NULL,
@@ -52,7 +82,7 @@ class AppDatabase {
         await db.execute('CREATE INDEX idx_payments_date ON payments(paid_at, voided)');
         await db.execute('CREATE INDEX idx_payments_client ON payments(client_id, voided)');
         await db.execute('CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
-        await db.insert('plans', {'name': 'Mensual (30 días)', 'duration_days': 30, 'price_cents': 0});
+        await db.insert('plans', {'name': 'Mensual calendario', 'duration_days': 30, 'cycle_kind': 'months', 'cycle_months': 1, 'price_cents': 0});
         await db.insert('plans', {'name': 'Semanal (7 días)', 'duration_days': 7, 'price_cents': 0});
         await db.insert('settings', {'key': 'studio_name', 'value': 'Mi estudio'});
         await db.insert('settings', {'key': 'color_index', 'value': '0'});
