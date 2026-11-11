@@ -42,7 +42,7 @@ Future<void> main() async {
       '''<?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/gym_lite_splash_background" />
-    <item android:gravity="center" android:drawable="@drawable/gym_lite_splash_icon" />
+    <item android:gravity="center" android:drawable="@mipmap/ic_launcher" />
 </layer-list>
 ''');
 
@@ -87,7 +87,7 @@ Future<void> main() async {
         body += '        <item name="android:windowSplashScreenBackground">'
             '@color/gym_lite_splash_background</item>\n'
             '        <item name="android:windowSplashScreenAnimatedIcon">'
-            '@drawable/gym_lite_splash_icon</item>\n'
+            '@mipmap/ic_launcher</item>\n'
             '        <item name="android:windowSplashScreenIconBackgroundColor">'
             '@color/gym_lite_splash_background</item>\n';
       }
@@ -101,5 +101,20 @@ Future<void> main() async {
   await editTheme('values-night', android12: false, dark: true);
   await editTheme('values-v31', android12: true, dark: false);
   await editTheme('values-night-v31', android12: true, dark: true);
-  stdout.writeln('Splash nativo de Gym Lite configurado correctamente.');
+  // Cambiar solo el rótulo visible, nunca el applicationId.
+  final manifest = File('android/app/src/main/AndroidManifest.xml');
+  if (!await manifest.exists()) {
+    throw StateError('Falta AndroidManifest.xml; ejecutá flutter create.');
+  }
+  final original = await manifest.readAsString();
+  final label = RegExp(r'android:label="[^"]*"');
+  if (!label.hasMatch(original)) {
+    throw StateError('No se encontró android:label en el manifiesto.');
+  }
+  await manifest.writeAsString(
+    original.replaceFirst(label, 'android:label="Higea Fitness"'),
+    flush: true,
+  );
+  stdout.writeln('Splash y nombre Higea Fitness configurados.');
+
 }
