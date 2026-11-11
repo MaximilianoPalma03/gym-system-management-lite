@@ -8,6 +8,7 @@ import 'data/gym_repository.dart';
 import 'state/gym_store.dart';
 import 'ui/theme.dart';
 import 'licensing/license_gate.dart';
+import 'services/trial_backup_exporter.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/clients_screen.dart';
 import 'ui/screens/payments_screen.dart';
@@ -71,7 +72,10 @@ class GymLiteApp extends StatelessWidget {
                 '${snapshot.error}'),
             ))));
           }
-          return LicenseGate(child: GymShell(store: store));
+          return LicenseGate(
+            child: GymShell(store: store),
+            onExportBackup: (context) => TrialBackupExporter.export(context, store),
+          );
         },
       ),
     ),

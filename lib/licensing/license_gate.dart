@@ -11,9 +11,17 @@ const bool _debugRequireLicense = bool.fromEnvironment('REQUIRE_LICENSE', defaul
 // Solo en modo debug: permite probar la solicitud de licencia sin borrar datos.
 const bool _debugPreviewActivation = bool.fromEnvironment('PREVIEW_ACTIVATION', defaultValue: false);
 
+typedef TrialBackupCallback = Future<void> Function(BuildContext context);
+
 class LicenseGate extends StatefulWidget {
-  const LicenseGate({super.key, required this.child});
+  const LicenseGate({
+    super.key,
+    required this.child,
+    this.onExportBackup,
+  });
   final Widget child;
+  final TrialBackupCallback? onExportBackup;
+
   @override
   State<LicenseGate> createState() => _LicenseGateState();
 }
@@ -25,6 +33,7 @@ class _LicenseGateState extends State<LicenseGate> {
   final _field = TextEditingController();
   late Future<LicenseStatus> _status = _service.status();
   bool _saving = false;
+  bool _exporting = false;
   String? _message;
 
   @override
@@ -49,22 +58,103 @@ class _LicenseGateState extends State<LicenseGate> {
     }
   }
 
-  Future<void> _activate() async {
-    if (_saving) return;
+  Future<bool> _activate() async {
+    if (_saving) return false;
     setState(() { _saving = true; _message = null; });
     try {
       final ok = await _service.activate(_field.text);
-      if (!mounted) return;
+      final updated = await _service.status();
+      if (!mounted) return false;
       setState(() {
-        _message = ok ? null : 'Clave inválida para esta instalación.';
-        _status = _service.status();
+        _message = ok ? null : 'Clave inválida para esta instalación o tipo de licencia.';
+        _status = Future.value(updated);
       });
+      return ok && updated.isPermanent;
     } catch (_) {
       if (mounted) setState(() {
         _message = 'No se pudo guardar la activación. Reintentá.';
       });
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _showCommercialActivation() async {
+    _field.clear();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, refresh) => AlertDialog(
+          title: const Text('Activar licencia comercial'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Pegá la licencia permanente que te envió el vendedor. '
+              'La prueba y todos tus datos se conservarán.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _field,
+              autocorrect: false,
+              enableSuggestions: false,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Licencia comercial',
+                hintText: 'GSL2-P-...',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.content_paste),
+                  tooltip: 'Pegar licencia',
+                  onPressed: () async {
+                    final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text ?? '';
+                    final match = RegExp(r'(?:GSL2-P|GSL2-T|GSL1)-[A-Za-z0-9_-]{86}')
+                        .firstMatch(copied);
+                    if (match != null) {
+                      _field.text = match.group(0)!;
+                      refresh(() {});
+                    }
+                  },
+                ),
+              ),
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 8),
+              Text(_message!, style: const TextStyle(color: Colors.red)),
+            ],
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Ahora no'),
+            ),
+            FilledButton(
+              onPressed: _saving ? null : () async {
+                final activated = await _activate();
+                if (activated && dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                } else {
+                  refresh(() {});
+                }
+              },
+              child: Text(_saving ? 'Validando...' : 'Activar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportBackup() async {
+    final callback = widget.onExportBackup;
+    if (callback == null || _exporting) return;
+    setState(() => _exporting = true);
+    try {
+      await callback(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('No se pudo exportar el respaldo: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 
@@ -102,20 +192,63 @@ class _LicenseGateState extends State<LicenseGate> {
             Text('No se pudo verificar la licencia. No borres los datos de la app.')));
         }
         final status = snapshot.data!;
-        if (status.valid && (kReleaseMode || !_debugPreviewActivation)) return widget.child;
+
+        if (status.valid && (kReleaseMode || !_debugPreviewActivation)) {
+          if (!status.isTrial) return widget.child;
+          return Stack(children: [
+            widget.child,
+            Positioned(
+              left: 12, right: 12, bottom: 84,
+              child: SafeArea(top: false, child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(14),
+                color: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  child: Row(children: [
+                    const Icon(Icons.hourglass_bottom, color: Color(0xFF36A676)),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Prueba gratuita',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                        Text('Quedan \${status.trialDaysRemaining} días',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                    )),
+                    TextButton(
+                      onPressed: _showCommercialActivation,
+                      child: const Text('Activar compra'),
+                    ),
+                  ]),
+                ),
+              )),
+            ),
+          ]);
+        }
+
+        final expiredTrial = status.trialExpired;
         return Scaffold(
           body: SafeArea(child: Center(child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 500),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Icon(Icons.verified_user_outlined, size: 66,
-                  color: Theme.of(context).colorScheme.primary),
+                Icon(expiredTrial ? Icons.hourglass_disabled : Icons.verified_user_outlined,
+                  size: 66, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 14),
-                Text('Activar Higea Fitness', textAlign: TextAlign.center,
+                Text(expiredTrial ? 'Tu prueba gratuita finalizó' : 'Activar Higea Fitness',
+                  textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 10),
-                const Text('La activación es permanente y funciona sin Internet. '
-                  'Enviá este código al vendedor para solicitar la clave.',
+                Text(expiredTrial
+                  ? 'Los 7 días de prueba terminaron. Tus clientes, pagos y configuraciones '
+                    'siguen guardados en este teléfono. Ingresá tu licencia comercial para '
+                    'continuar usando Higea.'
+                  : 'La activación funciona sin Internet. Podés solicitar una prueba gratuita '
+                    'de 7 días o activar una licencia comercial permanente. Enviá este código '
+                    'al vendedor para recibir tu clave.',
                   textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 const Text('Código de esta instalación'),
@@ -141,14 +274,16 @@ class _LicenseGateState extends State<LicenseGate> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _field, autocorrect: false, enableSuggestions: false,
-                  decoration: InputDecoration(labelText: 'Clave de activación',
-                    hintText: 'GSL1-...',
+                  decoration: InputDecoration(
+                    labelText: expiredTrial ? 'Licencia comercial' : 'Clave de activación',
+                    hintText: 'GSL2-...',
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.content_paste),
                       tooltip: 'Pegar licencia recibida',
                       onPressed: () async {
                         final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text ?? '';
-                        final match = RegExp(r'GSL1-[A-Za-z0-9_-]{86}').firstMatch(copied);
+                        final match = RegExp(r'(?:GSL2-P|GSL2-T|GSL1)-[A-Za-z0-9_-]{86}')
+                            .firstMatch(copied);
                         if (match != null) _field.text = match.group(0)!;
                       },
                     )), minLines: 1, maxLines: 3,
@@ -160,8 +295,17 @@ class _LicenseGateState extends State<LicenseGate> {
                 FilledButton.icon(
                   onPressed: _saving ? null : _activate,
                   icon: const Icon(Icons.check_circle_outline),
-                  label: Text(_saving ? 'Validando...' : 'Activar aplicación'),
+                  label: Text(_saving ? 'Validando...' :
+                    expiredTrial ? 'Activar licencia comercial' : 'Activar aplicación'),
                 ),
+                if (expiredTrial && widget.onExportBackup != null) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _exporting ? null : _exportBackup,
+                    icon: const Icon(Icons.save_alt_outlined),
+                    label: Text(_exporting ? 'Preparando respaldo...' : 'Guardar respaldo cifrado'),
+                  ),
+                ],
                 if (const String.fromEnvironment('GYM_LITE_PUBLIC_KEY').isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 18),
@@ -170,10 +314,12 @@ class _LicenseGateState extends State<LicenseGate> {
                       textAlign: TextAlign.center, style: TextStyle(color: Colors.deepOrange)),
                   ),
                 const SizedBox(height: 14),
-                const Text('La licencia pertenece a esta instalación. '
-                  'Al reinstalar o cambiar de celular puede requerirse otra clave. '
-                  'Los respaldos de clientes no contienen licencias.',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                Text(expiredTrial
+                  ? 'La prueba no se reinicia al volver a introducir su clave. '
+                    'La licencia comercial activa esta misma instalación sin borrar datos.'
+                  : 'La licencia pertenece a esta instalación. Al reinstalar o cambiar de '
+                    'celular puede requerirse otra clave. Los respaldos no contienen licencias.',
+                  textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
               ])),
           ))),
         );
