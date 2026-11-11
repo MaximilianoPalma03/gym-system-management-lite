@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'license_service.dart';
 
 /// En release se exige licencia. En debug se puede probar con
@@ -85,11 +86,29 @@ class _LicenseGateState extends State<LicenseGate> {
                   onPressed: () => Clipboard.setData(ClipboardData(text: status.installationId)),
                   icon: const Icon(Icons.copy), label: const Text('Copiar código'),
                 ),
+                TextButton.icon(
+                  onPressed: () => SharePlus.instance.share(ShareParams(
+                    text: 'Mi código para activar Gym Lite es:\n' +
+                      status.installationId,
+                    title: 'Solicitar licencia Gym Lite',
+                  )),
+                  icon: const Icon(Icons.ios_share_outlined),
+                  label: const Text('Enviar código al vendedor'),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _field, autocorrect: false, enableSuggestions: false,
                   decoration: const InputDecoration(labelText: 'Clave de activación',
-                    hintText: 'GSL1-...'), minLines: 1, maxLines: 3,
+                    hintText: 'GSL1-...',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.content_paste),
+                      tooltip: 'Pegar licencia recibida',
+                      onPressed: () async {
+                        final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text ?? '';
+                        final match = RegExp(r'GSL1-[A-Za-z0-9_-]{86}').firstMatch(copied);
+                        if (match != null) _field.text = match.group(0)!;
+                      },
+                    )), minLines: 1, maxLines: 3,
                 ),
                 if (_message != null) Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
