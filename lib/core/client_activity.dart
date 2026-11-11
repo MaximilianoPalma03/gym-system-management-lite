@@ -45,3 +45,22 @@ ClientActivity clientActivity(
   if (pastDue > inactiveAfterDays) return ClientActivity.inactivoAutomatico;
   return ClientActivity.pendiente;
 }
+
+enum ClientListFilter { active, inactive, all }
+
+extension ClientListFilterSelection on ClientListFilter {
+  String get label {
+    switch (this) {
+      case ClientListFilter.active: return 'Activos';
+      case ClientListFilter.inactive: return 'Ver inactivos';
+      case ClientListFilter.all: return 'Incluir inactivos';
+    }
+  }
+  bool includes(ClientActivity status) {
+    switch (this) {
+      case ClientListFilter.active: return !status.isInactive;
+      case ClientListFilter.inactive: return status.isInactive;
+      case ClientListFilter.all: return true;
+    }
+  }
+}
