@@ -49,7 +49,11 @@ class PaymentsScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final payment = store.payments[index];
                   return _PaymentRow(
-                    payment: payment, onVoid: () => _void(context, payment),
+                    payment: payment,
+                    canVoid: !payment.voided && !store.payments.any(
+                      (other) => other.clientId == payment.clientId
+                          && !other.voided && other.id > payment.id),
+                    onVoid: () => _void(context, payment),
                     onReceipt: () => ReceiptService.share(context, store, payment),
                     onWhatsApp: () => ReceiptService.whatsapp(context, store, payment));
                 },
@@ -80,9 +84,10 @@ class PaymentsScreen extends StatelessWidget {
 }
 
 class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({required this.payment, required this.onVoid,
+  const _PaymentRow({required this.payment, required this.canVoid, required this.onVoid,
     required this.onReceipt, required this.onWhatsApp});
   final StudioPayment payment;
+  final bool canVoid;
   final VoidCallback onVoid;
   final VoidCallback onReceipt;
   final VoidCallback onWhatsApp;
@@ -113,8 +118,8 @@ class _PaymentRow extends StatelessWidget {
           const PopupMenuItem(value: 'share', child: Text('Compartir constancia')),
           if (!payment.voided)
             const PopupMenuItem(value: 'whatsapp', child: Text('Enviar por WhatsApp')),
-          if (!payment.voided)
-            const PopupMenuItem(value: 'void', child: Text('Anular cobro')),
+          if (canVoid)
+            const PopupMenuItem(value: 'void', child: Text('Anular último cobro')),
         ],
       ),
     ]),

@@ -273,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(p.name + (p.active ? '' : ' (inactivo)'),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(p.durationDays.toString() + ' días · ' + formatMoney(p.priceCents),
+                  Text((p.isCalendarMonthly ? p.cycleMonths.toString() + ' mes(es) calendario' : p.durationDays.toString() + ' días fijos') + ' · ' + formatMoney(p.priceCents),
                     style: Theme.of(context).textTheme.bodySmall),
                 ])),
                 const Icon(Icons.edit_outlined),
@@ -326,6 +326,8 @@ class _PlanEditorState extends State<_PlanEditor> {
   final key = GlobalKey<FormState>();
   late final name = TextEditingController(text: widget.plan?.name ?? '');
   late final days = TextEditingController(text: (widget.plan?.durationDays ?? 30).toString());
+  late final months = TextEditingController(text: (widget.plan?.cycleMonths ?? 1).toString());
+  late String cycleKind = widget.plan?.cycleKind ?? 'days';
   late final price = TextEditingController(
     text: ((widget.plan?.priceCents ?? 0) / 100).toStringAsFixed(0));
   late bool active = widget.plan?.active ?? true;
@@ -333,7 +335,7 @@ class _PlanEditorState extends State<_PlanEditor> {
 
   @override
   void dispose() {
-    name.dispose(); days.dispose(); price.dispose();
+    name.dispose(); days.dispose(); months.dispose(); price.dispose();
     super.dispose();
   }
   Future<void> save() async {
@@ -342,8 +344,9 @@ class _PlanEditorState extends State<_PlanEditor> {
     try {
       await widget.store.modify(() => widget.store.repo.savePlan(
         id: widget.plan?.id, name: name.text,
-        durationDays: int.parse(days.text), priceCents: parseMoney(price.text)!,
-        active: active));
+        durationDays: cycleKind == 'months' ? 30 : int.parse(days.text),
+        cycleKind: cycleKind, cycleMonths: cycleKind == 'months' ? int.parse(months.text) : 1,
+        priceCents: parseMoney(price.text)!, active: active));
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) notice(context, 'Error: $e');
@@ -361,12 +364,37 @@ class _PlanEditorState extends State<_PlanEditor> {
           decoration: const InputDecoration(labelText: 'Nombre del plan'),
           validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ingresá un nombre.' : null),
         const SizedBox(height: 8),
-        TextFormField(controller: days, keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Duración en días'),
-          validator: (v) {
-            final n = int.tryParse(v ?? '');
-            return n == null || n < 1 || n > 3650 ? 'Ingresá entre 1 y 3650 días.' : null;
-          }),
+        DropdownButtonFormField<String>(
+          value: cycleKind,
+          decoration: const InputDecoration(labelText: 'Tipo de duración'),
+          items: const [
+            DropdownMenuItem(value: 'months', child: Text('Mensual calendario')),
+            DropdownMenuItem(value: 'days', child: Text('Días fijos')),
+          ],
+          onChanged: (v) => setState(() => cycleKind = v ?? 'days'),
+        ),
+        const SizedBox(height: 8),
+        if (cycleKind == 'days')
+          TextFormField(controller: days, keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Duración exacta (días)'),
+            validator: (v) {
+              if (cycleKind != 'days') return null;
+              final n = int.tryParse(v ?? '');
+              return n == null || n < 1 || n > 3650 ? 'Ingresá entre 1 y 3650 días.' : null;
+            })
+        else
+          TextFormField(controller: months, keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Cantidad de meses calendario'),
+            validator: (v) {
+              if (cycleKind != 'months') return null;
+              final n = int.tryParse(v ?? '');
+              return n == null || n < 1 || n > 120 ? 'Ingresá entre 1 y 120 meses.' : null;
+            }),
+        const SizedBox(height: 6),
+        Text(cycleKind == 'months'
+          ? 'Conserva el mismo día de vencimiento cada mes (también para días 29, 30 o 31).'
+          : 'Extiende la cuota por la cantidad exacta de días configurados.',
+          style: const TextStyle(fontSize: 12)),
         const SizedBox(height: 8),
         TextFormField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(labelText: 'Precio sugerido (ARS)'),
