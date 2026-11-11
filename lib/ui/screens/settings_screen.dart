@@ -78,6 +78,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.store.modify(() => widget.store.repo.saveSetting('color_index', index.toString()));
   }
 
+  Future<void> _changeTheme(String theme) async {
+    await widget.store.modify(() => widget.store.repo.saveSetting('theme_mode', theme));
+  }
+
   /// El diálogo conserva sus propios campos durante su animación de salida.
   /// No destruimos TextEditingControllers justo después del Navigator.pop:
   /// eso producía un fallo de widgets durante guardar/compartir/restaurar.
@@ -241,9 +245,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Spacer(),
                 TextButton(onPressed: _clearLogo, child: const Text('Quitar')),
               ]),
-            const Text('El ícono del escritorio Android es común al producto y se configura al compilar.',
+            const Text('El ícono del escritorio Android identifica a Higea Fitness. '
+              'El nombre y el logo de este estudio son personalizables dentro de la app.',
               style: TextStyle(fontSize: 12)),
             const SizedBox(height: 18),
+            const Text('Apariencia'),
+            const SizedBox(height: 10),
+            SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'light', label: Text('Claro'),
+                  icon: Icon(Icons.light_mode_outlined)),
+                ButtonSegment(value: 'dark', label: Text('Oscuro'),
+                  icon: Icon(Icons.dark_mode_outlined)),
+                ButtonSegment(value: 'system', label: Text('Sistema'),
+                  icon: Icon(Icons.settings_brightness_outlined)),
+              ],
+              selected: {widget.store.themeMode.name},
+              onSelectionChanged: (values) => _changeTheme(values.first),
+            ),
+            const SizedBox(height: 20),
             const Text('Color principal'),
             const SizedBox(height: 8),
             Wrap(spacing: 12, runSpacing: 10, children: [

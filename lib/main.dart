@@ -36,9 +36,11 @@ class GymLiteApp extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: store,
     builder: (context, _) => MaterialApp(
-      title: 'Gym System Management Lite',
+      title: 'Higea Fitness',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(store.colorIndex),
+      darkTheme: buildAppTheme(store.colorIndex, brightness: Brightness.dark),
+      themeMode: store.themeMode,
       locale: const Locale('es', 'AR'),
       supportedLocales: const [Locale('es', 'AR')],
       localizationsDelegates: const [
@@ -65,6 +67,7 @@ class _GymShellState extends State<GymShell> {
     const titles = ['Inicio', 'Clientes', 'Pagos', 'Informes'];
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 68,
         leading: (widget.store.settings['studio_logo_b64'] ?? '').isEmpty
           ? null
           : Padding(padding: const EdgeInsets.all(7), child: CircleAvatar(
@@ -75,7 +78,12 @@ class _GymShellState extends State<GymShell> {
                 errorBuilder: (_, _, _) => const Icon(Icons.fitness_center),
               )))),
         title: Text(index == 0 ? widget.store.studioName : titles[index],
-          maxLines: 1, overflow: TextOverflow.ellipsis),
+          maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: index == 0 ? 24 : 20,
+            fontWeight: index == 0 ? FontWeight.w800 : FontWeight.w700,
+            letterSpacing: index == 0 ? -0.4 : 0,
+          )),
         actions: [
           IconButton(
             tooltip: 'Ajustes',

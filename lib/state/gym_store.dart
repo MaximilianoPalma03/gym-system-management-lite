@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../data/gym_repository.dart';
 import '../data/models.dart';
 
@@ -34,6 +35,14 @@ class GymStore extends ChangeNotifier {
     return name.isEmpty ? 'Mi estudio' : name;
   }
   int get colorIndex => int.tryParse(settings['color_index'] ?? '0') ?? 0;
+
+  ThemeMode get themeMode {
+    switch (settings['theme_mode']) {
+      case 'dark': return ThemeMode.dark;
+      case 'system': return ThemeMode.system;
+      default: return ThemeMode.light;
+    }
+  }
   StudioClient? clientById(int id) {
     for (final client in clients) {
       if (client.id == id) return client;
