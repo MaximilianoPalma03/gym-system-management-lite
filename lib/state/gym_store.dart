@@ -42,6 +42,13 @@ class GymStore extends ChangeNotifier {
   }
   int get colorIndex => int.tryParse(settings['color_index'] ?? '0') ?? 0;
 
+  /// Días transcurridos desde el vencimiento para considerar a un socio
+  /// inactivo automáticamente. Configuración local; valor inicial 30 días.
+  int get inactiveAfterDays {
+    final days = int.tryParse(settings['inactive_after_days'] ?? '') ?? 30;
+    return days >= 1 && days <= 365 ? days : 30;
+  }
+
   ThemeMode get themeMode {
     switch (settings['theme_mode']) {
       case 'dark': return ThemeMode.dark;

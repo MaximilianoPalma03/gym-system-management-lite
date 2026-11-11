@@ -35,7 +35,13 @@ class GymRepository {
   }
 
   Future<void> saveSetting(String key, String value) async {
-    if (!['studio_name', 'color_index', 'studio_logo_b64', 'theme_mode'].contains(key)) throw ArgumentError('Configuración inválida');
+    if (!['studio_name', 'color_index', 'studio_logo_b64', 'theme_mode', 'inactive_after_days'].contains(key)) throw ArgumentError('Configuración inválida');
+    if (key == 'inactive_after_days') {
+      final days = int.tryParse(value);
+      if (days == null || days < 1 || days > 365) {
+        throw ArgumentError('El plazo de inactividad debe estar entre 1 y 365 días.');
+      }
+    }
     final db = await storage.database;
     await db.insert('settings', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);
