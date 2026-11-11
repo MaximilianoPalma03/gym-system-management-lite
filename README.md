@@ -83,3 +83,20 @@ anulación, exportación y restauración con un archivo real. Proteger el dispos
 con bloqueo y guardar una copia externa de los respaldos.
 
 GitHub Actions verifica análisis, pruebas y compilación debug cuando está habilitado.
+
+## Desarrollo comercial 0.3 (rama de pruebas)
+
+- Mensualidades **calendario** con mismo día de vencimiento y ajuste de 29/30/31.
+- Planes de **duración fija** por días exactos.
+- Solo anulación del último cobro válido del cliente.
+- Constancias PDF tipo ticket **80 x 160 mm** para compartir por Android.
+- Registro de celulares: Argentina por defecto, con Chile, Brasil y otros países.
+- Licencia permanente Ed25519 por instalación, sin servidor.
+- Aplicación separada `license_manager/` para generar licencias desde el teléfono.
+
+Probá ambas aplicaciones con datos ficticios antes de distribuir un APK release.
+
+Guías: [Reglas de cuotas](docs/REGLAS_CUOTAS.md),
+[Licencias](docs/LICENCIAS.md),
+[License Manager](license_manager/README.md) y
+[Pruebas](docs/PRUEBAS_PARA_EL_USUARIO.md).

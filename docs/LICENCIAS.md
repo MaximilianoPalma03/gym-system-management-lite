@@ -1,78 +1,49 @@
-# Licencias offline por instalación (Ed25519)
+# Licencias offline con emisor desde Android
 
-**Estado:** desarrollo en rama de pruebas. No distribuir la versión release hasta
-validar que las licencias, firma del APK, actualización y restauración funcionen.
+## Cómo vender una instalación
 
-## Cómo funciona
+1. Instalá la app independiente **Gym Lite License Manager** en tu celular.
+2. Creá **una sola clave maestra** y guardá un respaldo `.gslkey` fuera del teléfono.
+3. Copiá la clave pública desde el emisor al preparar la compilación comercial:
+   `flutter build apk --release --dart-define=GYM_LITE_PUBLIC_KEY=CLAVE_PUBLICA`
+4. El cliente instala ese APK, toca «Enviar código al vendedor» y te lo manda.
+5. Pegás el código de instalación en License Manager y tocás «Generar licencia».
+6. Le enviás la clave por WhatsApp desde la propia app administradora.
+7. El cliente toca «Pegar licencia» en Gym Lite; no debe tipear los 91 caracteres.
+8. Una vez activada, sigue funcionando permanentemente y sin Internet.
 
-1. La instalación genera un ID aleatorio hexadecimal de 32 caracteres, guardado localmente.
-2. En release se muestra la pantalla de activación hasta obtener una firma válida.
-3. El desarrollador firma el ID con una clave privada Ed25519, solo en su computadora.
-4. El APK verifica con una clave pública incluida al compilar, sin Internet.
-5. Una vez activada la instalación, la app no vuelve a pedir la clave si conserva
-   su almacenamiento local, se actualiza con la misma firma Android y se mantiene
-   la misma clave pública de licencias.
+El generador no requiere PIN o biometría; tampoco necesita Internet para firmar.
+Solo para enviar la licencia por WhatsApp se requiere conexión.
 
-Este método dificulta compartir la clave, pero **no bloquea una copia modificada
-del APK ni clonaciones sofisticadas del almacenamiento de Android**. La licencia
-no se revoca a distancia y cambiar de teléfono/reinstalar normalmente requiere
-que el desarrollador emita una nueva clave. El respaldo de clientes no incluye
-el ID de instalación ni la licencia.
+### Cómo probar sin interferir con el desarrollo
 
-## Paso 1. Generar una clave privada maestra (una sola vez)
+Las compilaciones debug no requieren licencia por defecto. Para probar el
+circuito completo, compilar la app del cliente con:
 
-Desde la raíz del proyecto en PowerShell o Git Bash:
+`flutter run --dart-define=REQUIRE_LICENSE=true --dart-define=GYM_LITE_PUBLIC_KEY=CLAVE_PUBLICA`
 
-```powershell
-dart run tool/license_admin.dart init "C:\Users\TU_USUARIO\Documents\gym-lite-privada.json"
-```
+El emisor debe usar la **misma clave privada** asociada a la clave pública
+que se incluyó en el APK. En release el requisito de licencia está siempre activo.
 
-Usar una ruta *fuera del repositorio*. El archivo privado se debe copiar
-de forma segura a otro medio protegido. **Si lo perdés, no podrás emitir
-nuevas licencias compatibles con ese APK. Si lo filtrás, otros podrán emitirlas.**
-No compartirlo por chats, correo ni GitHub.
+### Pérdida del celular
 
-La herramienta imprime una **clave pública** en formato base64url.
-Es seguro incluir esa clave pública en compilaciones y documentación.
+La clave maestra se conserva localmente en License Manager.
+El respaldo `.gslkey` permite restaurarla en otro celular.
+Sin ese respaldo ya no podrás emitir licencias compatibles con la edición
+comercial. Si alguien obtiene ese archivo podrá firmar nuevas licencias;
+guardalo fuera de GitHub y no lo envíes a compradores.
 
-## Paso 2. Compilar la app con la clave pública
+### Limitaciones
 
-Para probar activación en debug:
+El ID es aleatorio por instalación (no un identificador de hardware).
+No existe revocación remota ni protección infalible contra APKs modificados
+o clonación avanzada de datos. Compartir simplemente el APK no activa
+un segundo dispositivo con la misma licencia.
 
-```powershell
-flutter run --dart-define=REQUIRE_LICENSE=true --dart-define=GYM_LITE_PUBLIC_KEY=PEGA_TU_CLAVE_PUBLICA
-```
+### Alternativa por consola
 
-La compilación debug sin REQUIRE_LICENSE no exige activación para facilitar pruebas.
-**Release siempre exige activación, aunque se intente configurar REQUIRE_LICENSE=false.**
+Conservamos `tool/license_admin.dart` como generador opcional en la PC.
+Si ya usás License Manager, importá **su misma** `.gslkey` en la herramienta
+de escritorio; no crees una clave maestra distinta.
 
-Para crear un APK comercial después de configurar la firma Android:
-
-```powershell
-flutter build apk --release --dart-define=GYM_LITE_PUBLIC_KEY=PEGA_TU_CLAVE_PUBLICA
-```
-
-Si compilás release sin clave pública, aparecerá una pantalla de configuración
-y ninguna licencia podrá activarse. Nunca distribuir ese APK.
-
-## Paso 3. Emitir una licencia al cliente
-
-El cliente te manda su ID desde la pantalla de activación. Ejecutá:
-
-```powershell
-dart run tool/license_admin.dart issue "C:\Users\TU_USUARIO\Documents\gym-lite-privada.json" CODIGO_DE_INSTALACION
-```
-
-Copiá la clave resultante `GSL1-...` y enviásela al cliente. No compartas
-el archivo JSON privado. Una clave no sirve en otra instalación.
-
-## Seguridad en Android
-
-- El ID es de instalación, **no una identidad de hardware garantizada**.
-- Android puede hacer copias automáticas del almacenamiento de aplicaciones.
-  Para el APK comercial hay que revisar `android:allowBackup` y las reglas
-  de extracción de datos. Evitar migrar licencia e ID a otro dispositivo.
-- Proteger la firma del APK y no alterar el package ID en actualizaciones.
-- No usar una clave simétrica compartida dentro del APK como sustituto
-  de Ed25519: permitiría fabricar licencias a quien la extraiga.
-- En caso de cambio de celular, verificar la compra y emitir otra licencia.
+`dart run tool/license_admin.dart issue RUTA_GSLKEY CODIGO_INSTALACION`
