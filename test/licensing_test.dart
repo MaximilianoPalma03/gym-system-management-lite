@@ -34,7 +34,11 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     algorithm = Ed25519();
     pair = await algorithm.newKeyPair();
-    publicKey = base64Url.encode((await pair.extractPublicKey()).bytes);
+    final extractedPublicKey = await pair.extractPublicKey();
+    if (extractedPublicKey is! SimplePublicKey) {
+      throw StateError('Ed25519 devolvió una clave pública incompatible.');
+    }
+    publicKey = base64Url.encode(extractedPublicKey.bytes);
     trialLicense = await signLicense(algorithm, pair, 'trial', installation);
     permanentLicense = await signLicense(algorithm, pair, 'permanent', installation);
     legacyLicense = await signLicense(algorithm, pair, 'legacy', installation);

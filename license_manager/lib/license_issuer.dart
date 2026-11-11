@@ -33,6 +33,9 @@ class LicenseIssuer {
     try {
       final privateBytes = await pair.extractPrivateKeyBytes();
       final public = await pair.extractPublicKey();
+      if (public is! SimplePublicKey) {
+        throw StateError('Ed25519 devolvió una clave pública incompatible.');
+      }
       final payload = jsonEncode({
         'format': 'gym-lite-ed25519-v1',
         'private': base64Url.encode(privateBytes),
