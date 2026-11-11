@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/formatters.dart';
 import '../../data/models.dart';
 import '../../state/gym_store.dart';
+import 'client_history_screen.dart';
 import '../widgets/client_form.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_form.dart';
@@ -99,6 +100,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
               Navigator.pop(sheet);
               showPaymentForm(context, widget.store, clientId: client.id);
             } : null, icon: const Icon(Icons.payments_outlined), label: const Text('Registrar pago')),
+            OutlinedButton.icon(onPressed: () {
+              Navigator.pop(sheet);
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ClientHistoryScreen(store: widget.store, clientId: client.id)));
+            }, icon: const Icon(Icons.history), label: const Text('Historial de cobros')),
             OutlinedButton.icon(onPressed: () {
               Navigator.pop(sheet);
               showClientForm(context, widget.store, client: client);
