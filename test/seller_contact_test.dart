@@ -8,6 +8,6 @@ void main() {
     expect(url.host, 'wa.me');
     expect(url.path, '/5493544432383');
     expect(url.queryParameters['text'], contains('A4Y3-B7K2'));
-    expect(url.queryParameters['text'], contains('Gym System Management Lite'));
+    expect(url.queryParameters['text'], contains('Higea Fitness'));
   });
 }
