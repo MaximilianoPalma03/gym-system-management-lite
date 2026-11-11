@@ -65,6 +65,26 @@ void main() {
     expect((await repo.clients()).single.dueDate, DateTime(2026, 12, 9));
   });
 
+  test('Mensual calendario conserva el día 13, incluso con cobro anticipado', () async {
+    await repo.saveClient(name: 'Cliente del día 13');
+    final client = (await repo.clients()).single;
+    final plan = (await repo.plans()).firstWhere((p) => p.cycleKind == 'months');
+    await repo.recordPayment(clientId: client.id, planId: plan.id,
+      amountCents: 3000000, method: 'Efectivo',
+      paidAt: DateTime(2026, 10, 13));
+    expect((await repo.clients()).single.dueDate, DateTime(2026, 11, 13));
+    await repo.recordPayment(clientId: client.id, planId: plan.id,
+      amountCents: 3000000, method: 'Transferencia',
+      paidAt: DateTime(2026, 11, 11));
+    expect((await repo.clients()).single.dueDate, DateTime(2026, 12, 13));
+    expect((await repo.clients()).single.billingAnchorDay, 13);
+
+    final lastPayment = (await repo.payments()).first;
+    await repo.voidPayment(lastPayment.id);
+    expect((await repo.clients()).single.dueDate, DateTime(2026, 11, 13));
+    expect((await repo.clients()).single.billingAnchorDay, 13);
+  });
+
   test('Un error en el cobro no modifica la base de datos', () async {
     await repo.saveClient(name: 'Cliente prueba');
     final customer = (await repo.clients()).single;
