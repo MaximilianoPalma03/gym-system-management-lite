@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'seller_contact.dart';
 import 'license_service.dart';
 
 /// En release se exige licencia. En debug se puede probar con
@@ -30,6 +31,22 @@ class _LicenseGateState extends State<LicenseGate> {
     super.dispose();
   }
 
+  Future<void> _sendCodeToSeller(String installationId) async {
+    try {
+      final uri = SellerContact.activationRequest(installationId);
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No se pudo abrir WhatsApp. Copiá el código y enviáselo al vendedor.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No se pudo abrir WhatsApp. Usá Copiar código para enviarlo manualmente.')));
+      }
+    }
+  }
+
   Future<void> _activate() async {
     if (_saving) return;
     setState(() { _saving = true; _message = null; });
@@ -56,7 +73,27 @@ class _LicenseGateState extends State<LicenseGate> {
       future: _status,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            backgroundColor: Color(0xFF11243B),
+            body: Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Color(0xFF36A676),
+                  child: Icon(Icons.fitness_center, color: Colors.white, size: 42),
+                ),
+                SizedBox(height: 20),
+                Text('Gym Lite',
+                    style: TextStyle(color: Colors.white,
+                      fontWeight: FontWeight.w700, fontSize: 24)),
+                SizedBox(height: 18),
+                SizedBox(width: 22, height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2,
+                    color: Color(0xFF36A676))),
+              ],
+            )),
+          );
         }
         if (snapshot.hasError) {
           return const Scaffold(body: Center(child:
@@ -95,12 +132,8 @@ class _LicenseGateState extends State<LicenseGate> {
                   icon: const Icon(Icons.copy), label: const Text('Copiar código'),
                 ),
                 TextButton.icon(
-                  onPressed: () => SharePlus.instance.share(ShareParams(
-                    text: 'Mi código para activar Gym Lite es:\n' +
-                      status.installationId,
-                    title: 'Solicitar licencia Gym Lite',
-                  )),
-                  icon: const Icon(Icons.ios_share_outlined),
+                  onPressed: () => _sendCodeToSeller(status.installationId),
+                  icon: const Icon(Icons.message_outlined),
                   label: const Text('Enviar código al vendedor'),
                 ),
                 const SizedBox(height: 16),
