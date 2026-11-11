@@ -23,7 +23,13 @@ void main() {
     expect(find.text('Comercial'), findsOneWidget);
     expect(find.text('Generar prueba gratuita'), findsOneWidget);
 
-    await tester.tap(find.text('Comercial'));
+    // En el viewport predeterminado de Flutter Test (800 × 600), el selector
+    // puede quedar debajo del área visible. Desplazarlo antes de tocarlo evita
+    // un tap fuera de pantalla que no cambia la selección.
+    final commercialOption = find.text('Comercial');
+    await tester.ensureVisible(commercialOption);
+    await tester.pumpAndSettle();
+    await tester.tap(commercialOption);
     await tester.pumpAndSettle();
     expect(find.text('Generar licencia permanente'), findsOneWidget);
   });
