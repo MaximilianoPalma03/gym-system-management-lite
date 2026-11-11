@@ -114,8 +114,12 @@ void main() {
   test('Una restauración inválida es transaccional', () async {
     await repo.saveClient(name: 'Dato original');
     final data = await repo.exportData();
-    final clients = data['clients'] as List;
-    clients.add({'id': 500, 'name': 'Registro incompleto'});
+    // Las listas devueltas por sqflite son de solo lectura. Creamos una copia
+    // modificable para simular un respaldo con un registro incompleto.
+    data['clients'] = [
+      ...(data['clients'] as List),
+      {'id': 500, 'name': 'Registro incompleto'},
+    ];
     await expectLater(repo.restoreData(data), throwsA(isA<Exception>()));
     expect((await repo.clients()).single.name, 'Dato original');
   });
