@@ -35,7 +35,7 @@ guardalo fuera de GitHub y no lo envíes a compradores.
 
 ### Limitaciones
 
-El ID es aleatorio por instalación (no un identificador de hardware).
+El código de activación visible tiene 8 caracteres aleatorios y un guion visual (ejemplo A4Y3-B7K2); no identifica el hardware. Las licencias de versiones anteriores con ID de 32 caracteres siguen siendo verificables si no se borra el almacenamiento.
 No existe revocación remota ni protección infalible contra APKs modificados
 o clonación avanzada de datos. Compartir simplemente el APK no activa
 un segundo dispositivo con la misma licencia.
@@ -47,3 +47,6 @@ Si ya usás License Manager, importá **su misma** `.gslkey` en la herramienta
 de escritorio; no crees una clave maestra distinta.
 
 `dart run tool/license_admin.dart issue RUTA_GSLKEY CODIGO_INSTALACION`
+
+
+**Sobre el largo de la clave:** el código que manda el cliente es corto (8 caracteres), pero la licencia firmada Ed25519 sigue siendo larga (aprox. 91 caracteres). No se tipea: el cliente utiliza el botón Pegar licencia desde WhatsApp. Acortarla mucho y mantener la misma verificación criptográfica offline no es posible con esta firma; un QR de licencia puede añadirse después.

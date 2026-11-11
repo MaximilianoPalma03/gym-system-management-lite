@@ -94,7 +94,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
     if (busy) return;
     final code = LicenseIssuer.normalizeInstallationCode(controller.text);
     if (!LicenseIssuer.isValidInstallationCode(code)) {
-      notify('Pegá el código de instalación de 32 caracteres.');
+      notify('Pegá el código corto de instalación (8 caracteres).');
       return;
     }
     setState(() { busy = true; error = null; });
@@ -111,8 +111,8 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   Future<void> pasteCode() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final content = data?.text ?? '';
-    final matched = RegExp(r'[A-Fa-f0-9]{32}').firstMatch(
-      content.replaceAll(RegExp(r'[\s-]'), ''));
+    final normalized = content.replaceAll(RegExp(r'[\s-]'), '').toUpperCase();
+    final matched = RegExp(r'[A-HJ-NP-Z2-9]{8}|[A-F0-9]{32}').firstMatch(normalized);
     if (matched == null) {
       notify('El portapapeles no tiene un código de instalación válido.');
       return;
@@ -235,7 +235,8 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => setState(() => license = null),
                 decoration: InputDecoration(
-                  labelText: 'Código de instalación',
+                  labelText: 'Código del cliente (8 caracteres)',
+                  hintText: 'A4Y3-B7K2',
                   suffixIcon: IconButton(onPressed: pasteCode,
                     icon: const Icon(Icons.content_paste), tooltip: 'Pegar'),
                 )),

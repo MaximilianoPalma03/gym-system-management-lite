@@ -81,9 +81,15 @@ class _LicenseGateState extends State<LicenseGate> {
                 const SizedBox(height: 20),
                 const Text('Código de esta instalación'),
                 const SizedBox(height: 6),
-                SelectableText(status.installationId,
+                SelectableText(status.installationId.length == 8
+                    ? status.installationId.substring(0, 4) + '-' +
+                      status.installationId.substring(4)
+                    : status.installationId,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: TextStyle(fontWeight: FontWeight.w800,
+                    color: Colors.green.shade700,
+                    fontSize: status.installationId.length == 8 ? 36 : 16,
+                    letterSpacing: status.installationId.length == 8 ? 2 : 0)),
                 TextButton.icon(
                   onPressed: () => Clipboard.setData(ClipboardData(text: status.installationId)),
                   icon: const Icon(Icons.copy), label: const Text('Copiar código'),

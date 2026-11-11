@@ -27,5 +27,7 @@ void main() {
   test('No admite IDs inválidos', () {
     expect(LicenseIssuer.isValidInstallationCode('0123456789ABCDEF0123456789ABCDEF'), true);
     expect(LicenseIssuer.isValidInstallationCode('ABCD'), false);
+    expect(LicenseIssuer.isValidInstallationCode('A4Y3-B7K2'), true);
+    expect(LicenseIssuer.normalizeInstallationCode('a4y3-b7k2'), 'A4Y3B7K2');
   });
 }
