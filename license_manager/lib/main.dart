@@ -15,7 +15,7 @@ class LicenseManagerApp extends StatelessWidget {
   const LicenseManagerApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Gym Lite License Manager',
+    title: 'Higea Fitness License Manager',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
@@ -124,9 +124,9 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   Future<void> shareLicense() async {
     if (license == null) return;
     await SharePlus.instance.share(ShareParams(
-      text: 'Tu clave de activación para Gym System Management Lite:\n\n' +
+      text: 'Tu clave de activación para Higea Fitness:\n\n' +
         license! + '\n\nCopiá y pegá la clave en la pantalla de activación.',
-      title: 'Licencia Gym Lite',
+      title: 'Licencia Higea Fitness',
     ));
   }
 
@@ -185,7 +185,7 @@ class _LicenseManagerHomeState extends State<LicenseManagerHome> {
   Widget build(BuildContext context) {
     final publicKey = key?['public'] as String?;
     return Scaffold(
-      appBar: AppBar(title: const Text('Gym Lite · Licencias')),
+      appBar: AppBar(title: const Text('Higea · Licencias')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(18),
         children: [
           Card(child: Padding(padding: const EdgeInsets.all(18),

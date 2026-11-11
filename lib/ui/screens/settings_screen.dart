@@ -138,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final params = ShareParams(
           files: [XFile.fromData(bytes, mimeType: 'application/octet-stream')],
           fileNameOverrides: [filename],
-          text: 'Respaldo cifrado de Gym System Management Lite',
+          text: 'Respaldo cifrado de Higea Fitness',
         );
         final result = await SharePlus.instance.share(params);
         if (mounted) {
@@ -320,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: const Text('Restaurar desde archivo')),
           ])),
           const SizedBox(height: 18),
-          const Text('Versión 0.1 · Uso local · Sin sincronización entre teléfonos.',
+          const Text('Higea Fitness · Versión de prueba · Uso local y offline.',
             textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
         ])),
       ])),
