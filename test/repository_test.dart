@@ -49,6 +49,30 @@ void main() {
     expect((await repo.payments()).where((p) => p.voided).length, 1);
   });
 
+  test('Anular la primera cuota recalcula las renovaciones siguientes', () async {
+    await repo.saveClient(name: 'Renovación consecutiva');
+    final client = (await repo.clients()).single;
+    await repo.savePlan(name: '30 días', durationDays: 30, priceCents: 100000);
+    final plan = (await repo.plans()).firstWhere((p) => p.name == '30 días');
+    for (final date in [
+      DateTime(2026, 11, 10),
+      DateTime(2026, 11, 20),
+      DateTime(2026, 11, 25),
+    ]) {
+      await repo.recordPayment(
+        clientId: client.id, planId: plan.id, amountCents: 100000,
+        method: 'Efectivo', paidAt: date);
+    }
+    final before = await repo.payments();
+    expect((await repo.clients()).single.dueDate, DateTime(2027, 2, 7));
+    await repo.voidPayment(before.last.id); // anula primera cuota
+    final after = (await repo.payments()).where((p) => !p.voided).toList();
+    expect(after.length, 2);
+    expect(after.last.periodStart, DateTime(2026, 11, 20));
+    expect(after.first.periodStart, DateTime(2026, 12, 20));
+    expect((await repo.clients()).single.dueDate, DateTime(2027, 1, 18));
+  });
+
   test('Un error en el cobro no modifica la base de datos', () async {
     await repo.saveClient(name: 'Cliente prueba');
     final customer = (await repo.clients()).single;

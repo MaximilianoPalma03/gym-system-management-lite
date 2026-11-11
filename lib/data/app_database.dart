@@ -10,8 +10,19 @@ class AppDatabase {
     if (_db != null && _db!.isOpen) return _db!;
     final base = _testPath ?? p.join(await getDatabasesPath(), 'gym_lite.db');
     _db = await openDatabase(
-      base, version: 1,
+      base, version: 2,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE payments ADD COLUMN duration_days INTEGER');
+          // La duración histórica se reconstruye desde el período guardado, no
+          // desde el plan actual, que pudo haber sido modificado.
+          await db.execute('''
+            UPDATE payments
+            SET duration_days = CAST(julianday(period_end) - julianday(period_start) + 1 AS INTEGER)
+          ''');
+        }
+      },
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE plans (
@@ -39,6 +50,7 @@ class AppDatabase {
             client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
             plan_id INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
             plan_name TEXT NOT NULL,
+            duration_days INTEGER NOT NULL CHECK(duration_days BETWEEN 1 AND 3650),
             amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
             method TEXT NOT NULL CHECK(method IN ('Efectivo','Transferencia','Tarjeta','Otro')),
             paid_at TEXT NOT NULL,

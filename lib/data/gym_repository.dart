@@ -112,7 +112,7 @@ class GymRepository {
       final periodEnd = periodStart.add(Duration(days: (plan['duration_days'] as int) - 1));
       await tx.insert('payments', {
         'client_id': clientId, 'plan_id': planId,
-        'plan_name': plan['name'], 'amount_cents': amountCents,
+        'plan_name': plan['name'], 'duration_days': plan['duration_days'], 'amount_cents': amountCents,
         'method': method, 'paid_at': dateKey(paymentDay),
         'period_start': dateKey(periodStart), 'period_end': dateKey(periodEnd),
         'notes': notes.trim(), 'voided': 0, 'created_at': DateTime.now().toUtc().toIso8601String(),
@@ -124,19 +124,41 @@ class GymRepository {
     });
   }
 
+  /// Anular un cobro y recalcular todos los períodos posteriores dentro de
+  /// una sola transacción. Si una renovación anticipada se anula, las siguientes
+  /// dejan de sumar días a una cuota que ya no existe.
   Future<void> voidPayment(int paymentId) async {
     final db = await storage.database;
     await db.transaction((tx) async {
-      final matches = await tx.query('payments', where: 'id = ? AND voided = 0', whereArgs: [paymentId]);
+      final matches = await tx.query('payments',
+        where: 'id = ? AND voided = 0', whereArgs: [paymentId]);
       if (matches.isEmpty) throw StateError('Pago no encontrado o ya anulado.');
       final clientId = matches.first['client_id'] as int;
       await tx.update('payments', {'voided': 1}, where: 'id = ?', whereArgs: [paymentId]);
+
       final remaining = await tx.query('payments',
-        columns: ['plan_id', 'period_end'], where: 'client_id = ? AND voided = 0',
-        whereArgs: [clientId], orderBy: 'period_end DESC, id DESC', limit: 1);
+        where: 'client_id = ? AND voided = 0',
+        whereArgs: [clientId], orderBy: 'id ASC');
+      DateTime? due;
+      int? lastPlanId;
+      for (final payment in remaining) {
+        final paid = day(DateTime.parse(payment['paid_at'] as String));
+        final duration = payment['duration_days'] as int;
+        if (duration < 1 || duration > 3650) {
+          throw StateError('Duración histórica del cobro inválida.');
+        }
+        final start = due != null && compareDays(due, paid) >= 0
+            ? due.add(const Duration(days: 1)) : paid;
+        due = start.add(Duration(days: duration - 1));
+        lastPlanId = payment['plan_id'] as int;
+        await tx.update('payments', {
+          'period_start': dateKey(start),
+          'period_end': dateKey(due),
+        }, where: 'id = ?', whereArgs: [payment['id']]);
+      }
       await tx.update('clients', {
-        'due_date': remaining.isEmpty ? null : remaining.first['period_end'],
-        'plan_id': remaining.isEmpty ? null : remaining.first['plan_id'],
+        'due_date': due == null ? null : dateKey(due),
+        'plan_id': lastPlanId,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, where: 'id = ?', whereArgs: [clientId]);
     });
@@ -167,7 +189,7 @@ class GymRepository {
     const columns = {
       'plans': ['id', 'name', 'duration_days', 'price_cents', 'active'],
       'clients': ['id', 'name', 'phone', 'notes', 'active', 'plan_id', 'due_date', 'created_at', 'updated_at'],
-      'payments': ['id', 'client_id', 'plan_id', 'plan_name', 'amount_cents', 'method',
+      'payments': ['id', 'client_id', 'plan_id', 'plan_name', 'duration_days', 'amount_cents', 'method',
         'paid_at', 'period_start', 'period_end', 'notes', 'voided', 'created_at'],
       'settings': ['key', 'value'],
     };
@@ -181,6 +203,17 @@ class GymRepository {
           if (item is! Map) throw const FormatException('Registro inválido.');
           final row = <String, Object?>{};
           for (final col in columns[table]!) {
+            // Compatibilidad con respaldos antiguos (v1), que todavía no
+            // guardaban duration_days. Se deduce del período histórico.
+            if (table == 'payments' && col == 'duration_days' && !item.containsKey(col)) {
+              final start = DateTime.tryParse(item['period_start']?.toString() ?? '');
+              final end = DateTime.tryParse(item['period_end']?.toString() ?? '');
+              if (start == null || end == null) {
+                throw const FormatException('Vigencia del respaldo inválida.');
+              }
+              row[col] = end.difference(start).inDays + 1;
+              continue;
+            }
             if (!item.containsKey(col)) throw const FormatException('Faltan columnas en el respaldo.');
             final value = item[col];
             if (value != null && value is! String && value is! int) {
