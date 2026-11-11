@@ -30,3 +30,8 @@ android/key.properties
 *.private.json
 *signing*.json
 *licencia*privada*.json
+
+# Material comercial local y secretos de licenciamiento
+*.gslkey
+android/higea-public-key.txt
+dist/
