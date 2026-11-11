@@ -251,19 +251,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 18),
             const Text('Apariencia'),
             const SizedBox(height: 10),
-            SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 'light', label: Text('Claro'),
-                  icon: Icon(Icons.light_mode_outlined)),
-                ButtonSegment(value: 'dark', label: Text('Oscuro'),
-                  icon: Icon(Icons.dark_mode_outlined)),
-                ButtonSegment(value: 'system', label: Text('Sistema'),
-                  icon: Icon(Icons.settings_brightness_outlined)),
-              ],
-              selected: {widget.store.themeMode.name},
-              onSelectionChanged: (values) => _changeTheme(values.first),
-            ),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final mode in const ['light', 'dark', 'system'])
+                ChoiceChip(
+                  label: Text(mode == 'light' ? 'Claro' :
+                    mode == 'dark' ? 'Oscuro' : 'Sistema'),
+                  selected: widget.store.themeMode.name == mode,
+                  onSelected: (_) => _changeTheme(mode),
+                ),
+            ]),
             const SizedBox(height: 20),
             const Text('Color principal'),
             const SizedBox(height: 8),

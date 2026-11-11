@@ -27,6 +27,15 @@ void main() {
     expect(await repo.payments(), isEmpty);
   });
 
+  test('La apariencia puede guardarse sin modificar clientes ni planes', () async {
+    await repo.saveSetting('theme_mode', 'dark');
+    expect((await repo.settings())['theme_mode'], 'dark');
+    await repo.saveSetting('theme_mode', 'system');
+    expect((await repo.settings())['theme_mode'], 'system');
+    expect(await repo.clients(), isEmpty);
+    expect((await repo.plans()).length, 2);
+  });
+
   test('Renovar anticipadamente conserva la vigencia y permite anular', () async {
     await repo.saveClient(name: 'Ana Test');
     final client = (await repo.clients()).single;
