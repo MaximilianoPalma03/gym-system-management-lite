@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/formatters.dart';
+import '../../core/client_activity.dart';
 import '../../data/models.dart';
 import '../../state/gym_store.dart';
 import 'client_history_screen.dart';
@@ -16,7 +17,7 @@ class ClientsScreen extends StatefulWidget {
 
 class _ClientsScreenState extends State<ClientsScreen> {
   final search = TextEditingController();
-  bool showInactive = false;
+  ClientListFilter filter = ClientListFilter.active;
   @override
   void dispose() {
     search.dispose();
@@ -28,26 +29,39 @@ class _ClientsScreenState extends State<ClientsScreen> {
     animation: widget.store,
     builder: (context, _) {
       final query = search.text.trim().toLowerCase();
-      final visible = widget.store.clients.where((c) =>
-        (c.active || showInactive) &&
-        (c.name.toLowerCase().contains(query) || c.phone.contains(query))).toList();
       final today = day(DateTime.now());
+      ClientActivity status(StudioClient client) => clientActivity(
+        client, today: today, inactiveAfterDays: widget.store.inactiveAfterDays);
+      final visible = widget.store.clients.where((c) =>
+        filter.includes(status(c)) &&
+        (c.name.toLowerCase().contains(query) || c.phone.contains(query))).toList();
       return Column(children: [
         Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 4), child: Column(children: [
           TextField(controller: search, onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(prefixIcon: Icon(Icons.search),
               hintText: 'Buscar por nombre o teléfono')),
           const SizedBox(height: 8),
-          Row(children: [
-            FilterChip(label: const Text('Incluir inactivos'), selected: showInactive,
-              onSelected: (v) => setState(() => showInactive = v)),
-            const Spacer(),
-            Text(visible.length.toString() + ' clientes', style: Theme.of(context).textTheme.bodySmall),
-          ]),
+          Wrap(spacing: 6, runSpacing: 2,
+            crossAxisAlignment: WrapCrossAlignment.center, children: [
+              for (final candidate in ClientListFilter.values)
+                ChoiceChip(
+                  label: Text(candidate.label),
+                  selected: filter == candidate,
+                  onSelected: (_) => setState(() => filter = candidate),
+                ),
+              Padding(padding: const EdgeInsets.only(left: 6),
+                child: Text('${visible.length} clientes',
+                  style: Theme.of(context).textTheme.bodySmall)),
+            ]),
         ])),
         Expanded(child: visible.isEmpty
-          ? const EmptyMessage(icon: Icons.people_outline, title: 'Sin clientes',
-              message: 'Registrá tu primer cliente con el botón inferior.')
+          ? EmptyMessage(
+              icon: Icons.people_outline,
+              title: filter == ClientListFilter.inactive
+                ? 'No hay clientes inactivos' : 'Sin clientes',
+              message: filter == ClientListFilter.inactive
+                ? 'Los clientes inactivos aparecerán acá.'
+                : 'No hay clientes con este filtro.')
           : RefreshIndicator(onRefresh: widget.store.refresh,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -55,8 +69,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final c = visible[index];
-                  final expired = c.dueDate == null || compareDays(c.dueDate!, today) < 0;
-                  final status = !c.active ? 'Inactivo' : expired ? 'Pendiente' : 'Vigente';
+                  final activity = status(c);
                   return ContentCard(onTap: () => _showClient(context, c),
                     child: Row(children: [
                       CircleAvatar(child: Text(c.name.substring(0, 1).toUpperCase())),
@@ -65,9 +78,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
                         Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                         if (c.phone.isNotEmpty)
                           Text(c.phone, style: Theme.of(context).textTheme.bodySmall),
-                        Text(status + ' · ' + formatDate(c.dueDate),
-                          style: TextStyle(fontSize: 12, color: !c.active ? Colors.grey
-                            : expired ? Colors.deepOrange : Colors.teal)),
+                        Text(activity.label + ' · ' + formatDate(c.dueDate),
+                          style: TextStyle(fontSize: 12,
+                            color: activity.isInactive ? Colors.grey
+                              : activity == ClientActivity.pendiente
+                                ? Colors.deepOrange : Colors.teal)),
                       ])),
                       const Icon(Icons.chevron_right),
                     ]));
@@ -84,6 +99,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
   );
 
   Future<void> _showClient(BuildContext context, StudioClient client) async {
+    final activity = clientActivity(client, today: DateTime.now(),
+        inactiveAfterDays: widget.store.inactiveAfterDays);
     await showModalBottomSheet<void>(
       context: context, isScrollControlled: true, showDragHandle: true,
       builder: (sheet) => SafeArea(child: Padding(
@@ -93,6 +110,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
             Text(client.name, style: Theme.of(sheet).textTheme.titleLarge),
             const SizedBox(height: 6),
             Text('Vencimiento: ' + formatDate(client.dueDate)),
+            if (activity == ClientActivity.inactivoAutomatico)
+              Text('Inactivo por más de ${widget.store.inactiveAfterDays} días '
+                'sin renovar. Un nuevo pago lo devuelve a la lista de activos.',
+                style: Theme.of(sheet).textTheme.bodySmall),
+            if (activity == ClientActivity.inactivoManual)
+              Text('Desactivado manualmente. Reactivalo para registrar pagos.',
+                style: Theme.of(sheet).textTheme.bodySmall),
             if (client.phone.isNotEmpty) Text('Teléfono: ' + client.phone),
             if (client.notes.isNotEmpty) Text('Notas: ' + client.notes),
             const SizedBox(height: 14),

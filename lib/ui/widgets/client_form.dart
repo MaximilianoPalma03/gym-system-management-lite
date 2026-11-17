@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models.dart';
+import '../../core/phones.dart';
 import '../../state/gym_store.dart';
 import 'common.dart';
 
@@ -23,6 +24,16 @@ class _ClientFormState extends State<_ClientForm> {
   late final phone = TextEditingController(text: widget.client?.phone ?? '');
   late final notes = TextEditingController(text: widget.client?.notes ?? '');
   bool saving = false;
+  String country = 'AR';
+
+  @override
+  void initState() {
+    super.initState();
+    final raw = widget.client?.phone ?? '';
+    if (raw.startsWith('+56')) country = 'CL';
+    else if (raw.startsWith('+55')) country = 'BR';
+    else if (raw.startsWith('+') && !raw.startsWith('+54')) country = 'OTHER';
+  }
   @override
   void dispose() {
     name.dispose(); phone.dispose(); notes.dispose();
@@ -33,7 +44,8 @@ class _ClientFormState extends State<_ClientForm> {
     setState(() => saving = true);
     try {
       await widget.store.modify(() => widget.store.repo.saveClient(
-        id: widget.client?.id, name: name.text, phone: phone.text,
+        id: widget.client?.id, name: name.text,
+        phone: normalizePhone(phone.text, country),
         notes: notes.text, active: widget.client?.active ?? true));
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -58,8 +70,34 @@ class _ClientFormState extends State<_ClientForm> {
           textCapitalization: TextCapitalization.words, maxLength: 100,
           decoration: const InputDecoration(labelText: 'Nombre y apellido *'),
           validator: (v) => (v?.trim().length ?? 0) < 2 ? 'Ingresá el nombre completo.' : null),
+        DropdownButtonFormField<String>(
+          value: country,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'País del teléfono'),
+          items: const [
+            DropdownMenuItem(value: 'AR', child: Text('Argentina (+54 9)')),
+            DropdownMenuItem(value: 'CL', child: Text('Chile (+56)')),
+            DropdownMenuItem(value: 'BR', child: Text('Brasil (+55)')),
+            DropdownMenuItem(value: 'OTHER', child: Text('Otro (+código completo)')),
+          ],
+          onChanged: (value) => setState(() => country = value ?? 'AR'),
+        ),
+        const SizedBox(height: 12),
         TextFormField(controller: phone, keyboardType: TextInputType.phone, maxLength: 40,
-          decoration: const InputDecoration(labelText: 'Teléfono (opcional)')),
+          decoration: InputDecoration(
+            labelText: 'Celular (opcional)',
+            hintText: country == 'AR' ? '3511234567, sin 0 ni 15'
+                : country == 'OTHER' ? '+código internacional y número' : 'Número local',
+          ),
+          validator: (value) {
+            try {
+              normalizePhone(value ?? '', country);
+              return null;
+            } on FormatException catch (e) {
+              return e.message;
+            }
+          },
+        ),
         TextFormField(controller: notes, maxLines: 2, maxLength: 500,
           decoration: const InputDecoration(labelText: 'Notas (opcional)')),
         const SizedBox(height: 8),

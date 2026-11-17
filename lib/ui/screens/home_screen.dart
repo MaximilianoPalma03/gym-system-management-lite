@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/formatters.dart';
+import '../../core/client_activity.dart';
 import '../../data/models.dart';
 import '../../state/gym_store.dart';
 import '../widgets/common.dart';
@@ -22,10 +23,12 @@ class HomeScreen extends StatelessWidget {
       final income = totalMonth(today.year, today.month);
       final before = DateTime(today.year, today.month - 1);
       final prior = totalMonth(before.year, before.month);
-      final active = store.clients.where((c) => c.active && c.dueDate != null
-          && compareDays(c.dueDate!, today) >= 0).length;
-      final pending = store.clients.where((c) => c.active && (c.dueDate == null
-          || compareDays(c.dueDate!, today) < 0)).length;
+      ClientActivity status(StudioClient c) => clientActivity(c,
+        today: today, inactiveAfterDays: store.inactiveAfterDays);
+      final active = store.clients.where((c) =>
+        status(c) == ClientActivity.vigente).length;
+      final pending = store.clients.where((c) =>
+        status(c) == ClientActivity.pendiente).length;
       final upcoming = store.clients.where((c) => c.active && c.dueDate != null
           && compareDays(c.dueDate!, today) >= 0
           && compareDays(c.dueDate!, today.add(const Duration(days: 7))) <= 0).toList()

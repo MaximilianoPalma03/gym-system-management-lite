@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/formatters.dart';
+import '../../core/billing.dart';
 import '../../state/gym_store.dart';
 import 'common.dart';
 
@@ -85,6 +86,12 @@ class _PaymentFormState extends State<_PaymentForm> {
   Widget build(BuildContext context) {
     final customers = widget.store.clients.where((c) => c.active).toList();
     final plans = widget.store.plans.where((p) => p.active).toList();
+    final client = clientId == null ? null : widget.store.clientById(clientId!);
+    final selectedPlan = planId == null ? null : widget.store.planById(planId!);
+    final preview = client == null || selectedPlan == null ? null : calculateBillingPeriod(
+      paidAt: paidAt, cycleKind: selectedPlan.cycleKind,
+      durationDays: selectedPlan.durationDays, cycleMonths: selectedPlan.cycleMonths,
+      previousDue: client.dueDate, previousAnchorDay: client.billingAnchorDay);
     return SafeArea(child: Padding(
       padding: EdgeInsets.fromLTRB(20, 4, 20, MediaQuery.viewInsetsOf(context).bottom + 24),
       child: SingleChildScrollView(child: Form(key: key, child: Column(
@@ -147,8 +154,14 @@ class _PaymentFormState extends State<_PaymentForm> {
           TextFormField(controller: notes, maxLength: 500,
             decoration: const InputDecoration(labelText: 'Observaciones (opcional)')),
           const SizedBox(height: 12),
-          Text('La renovación comienza luego del vencimiento vigente o en la fecha del cobro.',
-            style: Theme.of(context).textTheme.bodySmall),
+          if (preview != null)
+            Card(child: ListTile(
+              leading: const Icon(Icons.event_available_outlined),
+              title: Text('Nuevo vencimiento: ' + formatDate(preview.end)),
+              subtitle: Text(selectedPlan!.isCalendarMonthly
+                ? 'Mensual calendario. No se pierden días por pagar antes.'
+                : 'Duración fija. Se conservan los días vigentes.'),
+            )),
           const SizedBox(height: 14),
           FilledButton(onPressed: saving ? null : save,
             child: Text(saving ? 'Guardando...' : 'Guardar cobro')),

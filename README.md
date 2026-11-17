@@ -1,6 +1,6 @@
-# Gym System Management Lite
+# Higea Fitness
 
-Aplicación **Android offline** para estudios pequeños de pilates, yoga, gimnasios y entrenadores independientes.
+**Higea Fitness** es una aplicación **Android offline** para estudios pequeños de pilates, yoga, gimnasios y entrenadores independientes.
 
 ## Alcance de la versión inicial
 
@@ -50,7 +50,7 @@ La app no envía datos por Internet; SQLite no está cifrada en reposo. Proteger
 
 ## Licencia
 
-Uso privado; sin licencia de distribución definida.
+El APK comercial se activa por instalación. Se puede ofrecer una prueba gratuita de 7 días y luego convertirla en una licencia comercial permanente sin perder los datos.
 
 ## Desarrollo y pruebas
 
@@ -83,3 +83,49 @@ anulación, exportación y restauración con un archivo real. Proteger el dispos
 con bloqueo y guardar una copia externa de los respaldos.
 
 GitHub Actions verifica análisis, pruebas y compilación debug cuando está habilitado.
+
+## Desarrollo comercial 0.3 (rama de pruebas)
+
+- Mensualidades **calendario** con mismo día de vencimiento y ajuste de 29/30/31.
+- Planes de **duración fija** por días exactos.
+- Solo anulación del último cobro válido del cliente.
+- Constancias PDF tipo ticket **80 x 160 mm** para compartir por Android.
+- Registro de celulares: Argentina por defecto, con Chile, Brasil y otros países.
+- Licencias Ed25519 por instalación: prueba gratuita de 7 días y licencia comercial permanente.
+- Conversión de prueba a compra sin reinstalar ni perder datos.
+- Aplicación separada `license_manager/` para emitir ambas licencias desde el teléfono.
+
+Probá ambas aplicaciones con datos ficticios antes de distribuir un APK release.
+
+Guías: [Reglas de cuotas](docs/REGLAS_CUOTAS.md),
+[Licencias](docs/LICENCIAS.md),
+[License Manager](license_manager/README.md) y
+[Pruebas](docs/PRUEBAS_PARA_EL_USUARIO.md).
+
+
+## Identidad Higea Fitness (rama de desarrollo)
+
+Los recursos gráficos aprobados deben descomprimirse dentro de
+`assets/branding/` antes de compilar:
+
+```bash
+flutter pub get
+dart run flutter_launcher_icons
+dart run tool/configurar_splash.dart
+flutter analyze --no-fatal-infos
+flutter test
+flutter run
+```
+
+El splash nativo usa el ícono de Higea. Flutter muestra la imagen completa
+durante la carga real de SQLite, sin añadir pausas artificiales.
+En Ajustes puede elegirse Claro, Oscuro o Sistema, conservando el color,
+el nombre y el logo de cada estudio.
+
+No se cambia el identificador de Android. Las licencias permanentes GSL1 siguen siendo válidas; las nuevas emisiones usan GSL2.
+Para compilar en otras máquinas, agregar las imágenes aprobadas al
+repositorio una vez verificadas; no contienen datos ni secretos.
+
+## Compilación comercial firmada
+
+Consultar la [guía de firma y distribución](docs/DISTRIBUCION_COMERCIAL.md). El procedimiento crea un APK de prueba 0.9.0 y una actualización 0.9.1 para verificar la conservación de datos con firma de producción. Nunca subir claves privadas ni contraseñas al repositorio.

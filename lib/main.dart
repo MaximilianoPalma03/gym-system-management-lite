@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -5,6 +7,8 @@ import 'data/app_database.dart';
 import 'data/gym_repository.dart';
 import 'state/gym_store.dart';
 import 'ui/theme.dart';
+import 'licensing/license_gate.dart';
+import 'services/trial_backup_exporter.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/clients_screen.dart';
 import 'ui/screens/payments_screen.dart';
@@ -15,27 +19,38 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_AR');
   final store = GymStore(GymRepository(AppDatabase()));
+  // Cargamos primero únicamente la identidad visual para evitar que se
+  // muestre el azul por defecto antes del color elegido por el estudio.
+  // El resto de la información se lee mientras se muestra Higea.
   try {
-    await store.refresh();
-    runApp(GymLiteApp(store: store));
+    await store.loadInitialAppearance();
   } catch (e) {
-    runApp(MaterialApp(home: Scaffold(body: SafeArea(child: Center(child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Text('No se pudo abrir la base de datos local. No desinstales la app sin revisar tus respaldos.\n\n$e'),
-    ))))));
+    runApp(MaterialApp(home: Scaffold(
+      body: SafeArea(child: Center(child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text('No se pudo abrir la configuración local. '
+          'No desinstales la app sin revisar tus respaldos.\n\n$e'),
+      ))),
+    )));
+    return;
   }
+  final initialLoad = store.refresh();
+  runApp(GymLiteApp(store: store, initialLoad: initialLoad));
 }
 
 class GymLiteApp extends StatelessWidget {
-  const GymLiteApp({super.key, required this.store});
+  const GymLiteApp({super.key, required this.store, required this.initialLoad});
   final GymStore store;
+  final Future<void> initialLoad;
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: store,
     builder: (context, _) => MaterialApp(
-      title: 'Gym System Management Lite',
+      title: 'Higea Fitness',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(store.colorIndex),
+      darkTheme: buildAppTheme(store.colorIndex, brightness: Brightness.dark),
+      themeMode: store.themeMode,
       locale: const Locale('es', 'AR'),
       supportedLocales: const [Locale('es', 'AR')],
       localizationsDelegates: const [
@@ -43,8 +58,51 @@ class GymLiteApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: GymShell(store: store),
+      home: FutureBuilder<void>(
+        future: initialLoad,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const HigeaLaunchScreen();
+          }
+          if (snapshot.hasError) {
+            return Scaffold(body: SafeArea(child: Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('No se pudo abrir la base de datos local. '
+                'No desinstales la app sin revisar tus respaldos.\n\n'
+                '${snapshot.error}'),
+            ))));
+          }
+          return LicenseGate(
+            child: GymShell(store: store),
+            onExportBackup: (context) => TrialBackupExporter.export(context, store),
+          );
+        },
+      ),
     ),
+  );
+}
+
+class HigeaLaunchScreen extends StatelessWidget {
+  const HigeaLaunchScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    backgroundColor: Color(0xFF061D33),
+    body: SafeArea(child: Column(children: [
+      Expanded(child: Center(child: Image(
+        image: AssetImage('assets/branding/higea_splash.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      ))),
+      Padding(
+        padding: EdgeInsets.only(bottom: 35, top: 10),
+        child: SizedBox(width: 25, height: 25,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: Color(0xFF9EEA4D),
+          )),
+      ),
+    ])),
   );
 }
 
@@ -62,8 +120,23 @@ class _GymShellState extends State<GymShell> {
     const titles = ['Inicio', 'Clientes', 'Pagos', 'Informes'];
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 68,
+        leading: (widget.store.settings['studio_logo_b64'] ?? '').isEmpty
+          ? null
+          : Padding(padding: const EdgeInsets.all(7), child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: ClipOval(child: Image.memory(
+                Uint8List.fromList(base64Decode(widget.store.settings['studio_logo_b64']!)),
+                width: 34, height: 34, fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Icon(Icons.fitness_center),
+              )))),
         title: Text(index == 0 ? widget.store.studioName : titles[index],
-          maxLines: 1, overflow: TextOverflow.ellipsis),
+          maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: index == 0 ? 24 : 20,
+            fontWeight: index == 0 ? FontWeight.w800 : FontWeight.w700,
+            letterSpacing: index == 0 ? -0.4 : 0,
+          )),
         actions: [
           IconButton(
             tooltip: 'Ajustes',

@@ -9,6 +9,10 @@ flutter create --platforms=android --project-name gym_system_management_lite .
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar el proyecto Android.' }
 flutter pub get
 if ($LASTEXITCODE -ne 0) { throw 'Falló flutter pub get.' }
+dart run flutter_launcher_icons
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar el ícono de Higea Fitness.' }
+dart run tool/configurar_splash.dart
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo configurar la pantalla de inicio.' }
 flutter analyze --no-fatal-infos
 if ($LASTEXITCODE -ne 0) { throw 'El análisis detectó errores.' }
 flutter test
