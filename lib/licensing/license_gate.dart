@@ -119,68 +119,6 @@ class _LicenseGateState extends State<LicenseGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _showCommercialActivation() async {
-    _field.clear();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, refresh) => AlertDialog(
-          title: const Text('Activar licencia comercial'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Pegá la licencia permanente que te envió el vendedor. '
-              'La prueba y todos tus datos se conservarán.'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _field,
-              autocorrect: false,
-              enableSuggestions: false,
-              minLines: 1,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Licencia comercial',
-                hintText: 'GSL2-P-...',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.content_paste),
-                  tooltip: 'Pegar licencia',
-                  onPressed: () async {
-                    final copied = (await Clipboard.getData(Clipboard.kTextPlain))?.text ?? '';
-                    final match = RegExp(r'(?:GSL2-P|GSL2-T|GSL1)-[A-Za-z0-9_-]{86}')
-                        .firstMatch(copied);
-                    if (match != null) {
-                      _field.text = match.group(0)!;
-                      refresh(() {});
-                    }
-                  },
-                ),
-              ),
-            ),
-            if (_message != null) ...[
-              const SizedBox(height: 8),
-              Text(_message!, style: const TextStyle(color: Colors.red)),
-            ],
-          ]),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Ahora no'),
-            ),
-            FilledButton(
-              onPressed: _saving ? null : () async {
-                final activated = await _activate();
-                if (activated && dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                } else {
-                  refresh(() {});
-                }
-              },
-              child: Text(_saving ? 'Validando...' : 'Activar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _exportBackup() async {
     final callback = widget.onExportBackup;
     if (callback == null || _exporting) return;
@@ -235,38 +173,7 @@ class _LicenseGateState extends State<LicenseGate> with WidgetsBindingObserver {
         if (status.valid && (kReleaseMode || !_debugPreviewActivation)) {
           if (!status.isTrial) return widget.child;
           _startTrialMonitoring();
-          return Stack(children: [
-            widget.child,
-            Positioned(
-              left: 12, right: 12, bottom: 84,
-              child: SafeArea(top: false, child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(14),
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                  child: Row(children: [
-                    const Icon(Icons.hourglass_bottom, color: Color(0xFF36A676)),
-                    const SizedBox(width: 10),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Prueba gratuita',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                        Text(status.trialDaysRemaining == 1 ? 'Queda 1 día' : 'Quedan ${status.trialDaysRemaining} días',
-                          style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    )),
-                    TextButton(
-                      onPressed: _showCommercialActivation,
-                      child: const Text('Activar compra'),
-                    ),
-                  ]),
-                ),
-              )),
-            ),
-          ]);
+          return widget.child;
         }
 
         final expiredTrial = status.trialExpired;

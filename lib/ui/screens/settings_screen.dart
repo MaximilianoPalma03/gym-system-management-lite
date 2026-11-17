@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/formatters.dart';
+import '../../licensing/license_settings_screen.dart';
 import '../../core/billing.dart';
 import '../../data/models.dart';
 import '../../services/backup_service.dart';
@@ -339,6 +340,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           )),
           const SizedBox(height: 16),
+          ContentCard(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Licencia de Higea Fitness',
+                style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              const Text('Consultá tu licencia y, si estás usando una prueba, '
+                'activá tu compra sin perder datos.'),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.verified_user_outlined),
+                title: const Text('Administrar licencia'),
+                subtitle: const Text('Estado, días restantes y activación comercial'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const LicenseSettingsScreen())),
+              ),
+            ],
+          )),
+          const SizedBox(height: 16),
           Row(children: [
             Expanded(child: Text('Planes y precios',
               style: Theme.of(context).textTheme.titleLarge)),
@@ -386,7 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: const Text('Restaurar desde archivo')),
           ])),
           const SizedBox(height: 18),
-          const Text('Higea Fitness · Versión de prueba · Uso local y offline.',
+          const Text('Higea Fitness · Gestión local y offline.',
             textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
         ])),
       ])),
