@@ -68,7 +68,7 @@ class _LicenseSettingsScreenState extends State<LicenseSettingsScreen> {
   Future<void> _sendCode(String id) async {
     try {
       final launched = await launchUrl(
-        SellerContact.activationRequest(id),
+        SellerContact.activationRequest(id, commercial: true),
         mode: LaunchMode.externalApplication,
       );
       if (!launched && mounted) {

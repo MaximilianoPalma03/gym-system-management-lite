@@ -7,11 +7,11 @@ class SellerContact {
   static const String whatsappPhone = '5493544432383';
 
   static Uri activationRequest(
-    String installationId, {bool trialExpired = false}) {
+    String installationId, {bool trialExpired = false, bool commercial = false}) {
     final display = installationId.length == 8
         ? installationId.substring(0, 4) + '-' + installationId.substring(4)
         : installationId;
-    final message = trialExpired
+    final message = trialExpired || commercial
         ? 'Hola, quiero activar la licencia comercial de Higea Fitness. '
           'Mi código de instalación es: $display'
         : 'Hola, quiero solicitar una prueba gratuita de 7 días de Higea Fitness. '
